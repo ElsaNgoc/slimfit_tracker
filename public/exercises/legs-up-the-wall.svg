@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="t d">
+  <title id="t">Legs up the wall (Viparita Karani phục hồi)</title>
+  <desc id="d">Nằm ngửa trên sàn, mông sát tường, hai chân duỗi thẳng dựa lên tường, hai tay thả lỏng hai bên.</desc>
+  <rect width="400" height="300" fill="#ffffff"/>
+  <!-- tường + sàn -->
+  <rect x="318" y="20" width="62" height="236" fill="#e4e4e7"/>
+  <line x1="318" y1="20" x2="318" y2="256" stroke="#a1a1aa" stroke-width="3"/>
+  <rect x="20" y="256" width="360" height="24" fill="#e4e4e7"/>
+  <line x1="20" y1="256" x2="380" y2="256" stroke="#a1a1aa" stroke-width="3"/>
+  <!-- thảm -->
+  <rect x="40" y="248" width="278" height="8" rx="3" fill="#6ee7b7"/>
+  <!-- gối kê hông (tuỳ chọn) -->
+  <rect x="262" y="232" width="48" height="16" rx="8" fill="#a7f3d0" stroke="#34d399" stroke-width="2"/>
+  <g fill="none" stroke="#18181b" stroke-linecap="round" stroke-linejoin="round">
+    <!-- chân dựa tường -->
+    <path d="M300 226 L306 120 L308 52" stroke-width="16"/>
+    <!-- bàn chân -->
+    <path d="M308 52 L296 40" stroke-width="10"/>
+    <!-- thân -->
+    <path d="M300 226 L122 232" stroke-width="22"/>
+    <!-- tay dang hai bên, lòng bàn tay ngửa -->
+    <path d="M140 236 L190 246 L228 246" stroke-width="10"/>
+  </g>
+  <!-- đầu -->
+  <circle cx="92" cy="226" r="20" fill="#18181b"/>
+  <!-- chú thích -->
+  <g font-family="system-ui, sans-serif" font-size="14" fill="#3f3f46">
+    <text x="190" y="70" text-anchor="middle">Chân thả lỏng, dựa tường</text>
+    <path d="M262 66 L296 80" stroke="#3f3f46" stroke-width="1.5" fill="none"/>
+    <text x="170" y="200" text-anchor="middle">Mông sát chân tường</text>
+    <path d="M232 196 L290 220" stroke="#3f3f46" stroke-width="1.5" fill="none"/>
+  </g>
+</svg>

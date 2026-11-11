@@ -1,0 +1,103 @@
+# Progress — Slimfit Tracker
+
+> File này được cập nhật sau mỗi task hoàn thành.
+
+## To-do
+
+- [x] Setup Workspace (`.aiexclude`, `docs/ARCHITECTURE.md`, `docs/PROGRESS.md`) — 2026-11-11
+- [x] Khởi tạo project Next.js 16 (App Router, TypeScript, `src/`) + Tailwind CSS v4 — 2026-11-11
+- [ ] Tích hợp Clerk Auth
+  - [x] Cài `@clerk/nextjs` v7 (Core 3), wrap `ClerkProvider` trong root layout
+  - [x] `src/proxy.ts` — `clerkMiddleware` bảo vệ mọi route trừ `/`, `/sign-in`, `/sign-up`
+  - [x] Navbar với Sign In / Sign Up / `UserButton` (`<Show when=...>`)
+  - [x] Thêm `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (dev instance) vào `.env.local`
+  - [x] Test đăng nhập trên trình duyệt thật (Playwright + Clerk sign-in ticket) — 2026-11-11
+- [ ] Kết nối Neon Postgres + cấu hình Drizzle ORM
+  - [x] Viết `drizzle.config.ts`, `src/db/index.ts`
+  - [x] Cài `drizzle-orm`, `@neondatabase/serverless`, `dotenv`, `drizzle-kit` + script `db:*`
+  - [x] Sinh migration đầu tiên `drizzle/0000_futuristic_night_thrasher.sql`
+  - [x] Tạo `.env.local` với `DATABASE_URL` từ Neon Console
+  - [x] Sinh migration `drizzle/0001_tan_winter_soldier.sql` (thêm `sex`, `birth_year`, `activity_level` vào `users`)
+  - [x] Sinh migration `drizzle/0002_furry_mentor.sql` (`exercises.image_credit` + unique `exercises.name`)
+  - [x] Sinh migration `drizzle/0003_amusing_mac_gargan.sql` (`exercises.recommended_weight`, `exercises.tips`) — 2026-11-11
+  - [x] Sinh migration `drizzle/0004_foamy_thunderbolt.sql` (`users.weekly_schedule` jsonb) — 2026-11-11
+  - [x] Migration 0000 → 0004 chạy thành công trên Neon branch tạm (E2E)
+  - [ ] Chạy `npm run db:migrate` lên branch `production`
+- [x] API / Server Actions (backend) — 2026-11-11
+  - [x] `GET /api/exercises` + `getExercises()` (lọc `category`, `muscleGroup`, `search`)
+  - [x] Actions `workout_logs`: `createWorkoutLog`, `updateWorkoutLog`, `deleteWorkoutLog`, `saveWorkoutSets`
+  - [x] Action `daily_logs`: `upsertDailyLog` (upsert theo `user_id + date`)
+  - [x] Test `workout_logs` / `daily_logs` actions với DB thật (E2E trên Neon branch) — 2026-11-11
+  - [ ] E2E cho `updateProfile`
+- [x] Thiết kế DB schema `src/db/schema.ts` (users, exercises, workout_logs, workout_sets, daily_logs)
+- [ ] Seed dữ liệu bảng `exercises` (gym + yoga)
+  - [x] Thêm `recommendedWeight` / `tips` + 6 bài gym mới (tổng 22 gym + 9 yoga) — 2026-11-11
+  - [x] Thêm 13 bài gym (Step-up, Cable Kickback, Good Morning, Incline Dumbbell Press, One-arm Dumbbell Row, Hammer Curl, Reverse Pec Deck, Sumo Squat, Cable Lateral Raise, Machine Shoulder Press, Banded Lateral Walk, Overhead Dumbbell Tricep Extension, Seated Leg Curl) — tổng 35 gym + 9 yoga — 2026-11-11
+  - [x] `src/db/seed/exercises.json`: 16 bài gym + 9 tư thế yoga, hướng dẫn tiếng Việt, ảnh WGER / Wikimedia Commons (có ghi nguồn & license) — 2026-11-11
+  - [x] Script `npm run db:seed` (`scripts/seed-exercises.ts`, upsert theo `name`)
+  - [x] Seed chạy thành công trên Neon branch tạm (E2E)
+  - [ ] Chạy `npm run db:seed` lên branch `production`
+- [ ] Layout Mobile-first (bottom navigation, app shell)
+  - [x] Dark mode cố định toàn app (`.dark` trên `<html>`, `@custom-variant dark`) — 2026-11-11
+- [ ] Tính năng Hồ sơ cá nhân & mục tiêu (cân nặng, chiều cao, TDEE/calo mục tiêu)
+  - [x] `src/lib/energy.ts`: BMR/TDEE Mifflin-St Jeor, mục tiêu calo = TDEE − 600 — 2026-11-11
+  - [x] Action `updateProfile` (tính + lưu `bmr`, `tdee`) + form hồ sơ trên Dashboard
+  - [ ] Lịch sử cân nặng theo thời gian
+- [ ] Tính năng Nhật ký dinh dưỡng (ghi bữa ăn, calo, macro)
+- [ ] Tính năng Nhật ký tập luyện
+  - [x] Trang `/workouts` + component `WorkoutLogger.tsx` (chọn ngày, chọn bài gym, nhập Set/Rep/Tạ, Add Set, Save Workout) — 2026-11-11
+  - [x] Kết nối `createWorkoutLog` / `updateWorkoutLog` / `saveWorkoutSets` (rollback `deleteWorkoutLog` nếu lưu set lỗi)
+  - [x] Modal hướng dẫn bài tập `ExerciseInfoModal.tsx` (bấm tên bài → ảnh tư thế, nhóm cơ, các bước, lưu ý; bottom sheet, vuốt xuống / chạm nền / Esc để đóng) — 2026-11-11
+  - [x] Mục "Yoga giãn cơ" (`YogaLibrary.tsx`) trên `/workouts`, mở cùng modal
+  - [x] Test thực tế với DB (E2E: log Bench Press 3 set → kiểm tra DB → xoá set → cập nhật) — 2026-11-11
+  - [x] Lịch tập mẫu (Workout Templates): nút "Thêm nhanh Lower Body 1 / Lower Body 2 / Upper Body" trên `WorkoutLogger`, tự load bài của template (bỏ qua bài đã có, mặc định 3 set × 10 rep); thẻ bài hiện "Tạ gợi ý" + mẹo ngay trên form nhập set — 2026-11-11
+  - [x] Lịch tuần mặc định: T2 Lower Body 1 · T3 Upper Body A · T4 Active Rest/Yoga · T5 Lower Body 2 · T6 Upper Body B · T7/CN nghỉ (`users.weekly_schedule`, null = mặc định) — 2026-11-11
+  - [x] Thay 3 nút "Thêm nhanh" bằng khối "Gợi ý bài tập cho hôm nay (Thứ X)" + nút "Bắt đầu bài tập hôm nay"; gợi ý đổi theo ngày tập đang chọn — 2026-11-11
+  - [x] Modal "Xem lịch cả tuần" (timeline Thứ 2 → CN, "Tập buổi này" để tập buổi của ngày khác) — 2026-11-11
+  - [x] Swap Exercise: nút ⇄ "Thay thế" trên mỗi thẻ, gợi ý bài cùng nhóm cơ chính chưa có trong buổi, đổi ngay (giữ set đã nhập) — 2026-11-11
+  - [ ] UI cho user tự chỉnh lịch tuần (ghi `users.weekly_schedule`)
+  - [ ] Cá nhân hoá mức tạ theo hồ sơ thật (giới tính / BMI / kinh nghiệm) — hiện chỉ có bộ dữ liệu cho nữ mới tập BMI ~25–28
+  - [x] ~~Ảnh động minh hoạ (GIF crossfade Everkinetic)~~ — gỡ bỏ 2026-11-12 vì 2 tư thế chồng lên nhau gây rối mắt
+  - [x] Quay về ảnh tĩnh: `ExerciseMedia` chỉ render `<img>` khung 4:3 (bỏ nhãn "Ảnh động", nút tạm dừng, `<video>`/`<canvas>`, `src/lib/exercise-media.ts`) — 2026-11-12
+  - [x] 25 ảnh ghép 2 tư thế "1 · Bắt đầu" / "2 · Kết thúc" (PNG 1200×900) trong `public/exercises/steps/` + script `npm run assets:images`: 23 bài Everkinetic (thêm RDL), Dumbbell / Machine Shoulder Press từ cặp ảnh wger (CC BY-SA 3.0) — 2026-11-12
+  - [ ] Ảnh ghép 2 tư thế cho các bài còn ảnh 1 khung hoặc chưa có ảnh: Hip Thrust, Glute Bridge, Goblet Squat, Bulgarian Split Squat (ảnh hiện tại chỉ rộng 474 px, mờ trên mobile), Lat Pulldown, Plank; Cable Face Pull, Reverse Pec Deck, Cable Lateral Raise, Banded Lateral Walk (chưa có ảnh)
+  - [ ] Thay ảnh Franpol trên wger (Bulgarian Split Squat, Lat Pulldown) — nghi là ảnh thương mại (FitnessVolt / WeightTraining.guide) đăng lại, giấy phép CC BY-SA không đáng tin
+  - [ ] Xem / sửa lịch sử các buổi tập đã lưu
+- [ ] Dashboard theo dõi tiến độ (biểu đồ cân nặng, calo theo ngày/tuần)
+  - [x] Dashboard `/` hôm nay: thẻ TDEE + Mục tiêu Calo, thẻ nhập tổng calo (thanh tiến độ), Habit Tracker Yoga tự lưu — 2026-11-11
+  - [x] Test thực tế với DB + Clerk (E2E: nhập calo / tick yoga → reload đọc lại từ DB) — 2026-11-11
+  - [ ] Biểu đồ theo ngày/tuần
+- [x] Testing (Vitest + React Testing Library) — 2026-11-11
+  - [x] Cài `vitest`, `@vitejs/plugin-react`, `jsdom`, `@testing-library/{react,dom,jest-dom,user-event}`, `vite-tsconfig-paths`; nâng `@types/node` 20 → 22 (peer dep của vitest 5, khớp Node 22)
+  - [x] `vitest.config.mts`, `vitest.setup.ts` (jest-dom, cleanup, polyfill `<dialog>`), stub `server-only`; script `npm test` / `npm run test:run`
+  - [x] `__tests__/utils.test.ts` — BMR/TDEE/mục tiêu calo, ngày theo giờ VN
+  - [x] `__tests__/components.test.tsx` — WorkoutLogger, ExerciseInfoModal, CalorieIntakeCard, YogaHabitCard
+  - [x] `__tests__/actions.test.ts` — mock Drizzle `db` + `requireUserId`, test validate & dữ liệu truyền vào ORM của workout-logs / daily-logs / profile
+  - [x] 67/67 test pass; mutation check (sửa −161 → −160) bị 6 test bắt
+  - [x] E2E test (Playwright) — 2026-11-11
+    - [x] Cài `@playwright/test` 1.65 + Chromium, `@clerk/testing`, `@clerk/backend`; `playwright.config.ts` (Pixel 7, giờ VN, `next build && next start` cổng 3100, không reuse dev server)
+    - [x] Clerk Testing Tokens: `e2e/global-setup.ts` (`clerkSetup()` + tạo user `+clerk_test`), `e2e/auth.setup.ts` (sign-in ticket → storageState) — không bypass middleware
+    - [x] `e2e/guest.spec.ts`, `e2e/auth-flow.spec.ts` — chặn khách, đăng nhập, đăng xuất
+    - [x] `e2e/server-components.spec.ts` — Dashboard `/`, `/workouts`, `/api/exercises`
+    - [x] `e2e/database.spec.ts` — ghi DB thật qua Server Actions, kiểm tra bằng SQL trên branch
+    - [x] `scripts/e2e-neon-branch.ts` + `npm run test:e2e` / `test:e2e:ui`: tạo Neon branch tạm → migrate → seed → Playwright → xoá branch
+    - [x] 12/12 test pass
+    - [x] 14/14 test pass sau khi thêm ảnh động (test GIF tải thật + chuyển động + tạm dừng) — 2026-11-12
+    - [x] 13/13 test pass sau khi thêm lịch tuần + swap (test gợi ý hôm nay, lịch tuần, swap trên DB thật) — 2026-11-11
+- [ ] Deploy (Vercel + Neon)
+
+## Nhật ký thay đổi
+
+- **2026-11-11** — Setup Workspace: tạo `.aiexclude`, `docs/ARCHITECTURE.md`, `docs/PROGRESS.md`, `CLAUDE.md`.
+- **2026-11-11** — DB init: viết `src/db/schema.ts` (5 bảng + enum `exercise_category`), `src/db/index.ts`, `drizzle.config.ts`; cập nhật schema vào ARCHITECTURE.md. Cung cấp lệnh khởi tạo Next.js + cài Drizzle/Neon.
+- **2026-11-11** — Chạy khởi tạo: scaffold Next.js 16.4.6 / React 19.3 / Tailwind 4.3 (qua thư mục tạm rồi gộp vào gốc), cài package DB, thêm script `db:generate|migrate|push|studio`, sinh migration 0000. `tsc --noEmit` pass (cần `next typegen` trước để có type `LayoutProps`).
+- **2026-11-11** — Auth & API: cài `@clerk/nextjs`, `zod`, `server-only`; thêm `src/proxy.ts`, Navbar, `ClerkProvider`; viết `src/lib/auth.ts` (`requireUserId` tự tạo row `users`), `src/lib/action-result.ts`, `src/db/queries/exercises.ts`, `src/app/api/exercises/route.ts`, `src/actions/workout-logs.ts`, `src/actions/daily-logs.ts`. Sửa lỗi prerender Cache Components bằng `<Suspense>` quanh auth controls. `tsc`, `eslint`, `next build` đều pass; chưa test runtime với DB/Clerk thật.
+- **2026-11-11** — Workout Tracker UI: thêm `src/app/workouts/page.tsx` (tải bài gym qua `getExercises` trong `<Suspense>` + `connection()`, ngày mặc định theo giờ VN) và `src/components/WorkoutLogger.tsx` (client; thẻ bài tập với form nhập nhanh Số set/Rep/Tạ, danh sách set có nút xoá, thanh Save Workout cố định đáy màn hình, nút ≥ 44px). Lưu: `createWorkoutLog` → `saveWorkoutSets`, lần sau dùng `updateWorkoutLog`. Chuyển app sang dark mode cố định, thêm link "Tập luyện" vào Navbar. `tsc`, `eslint`, `next build` pass; chưa test runtime với DB thật.
+- **2026-11-11** — Dashboard: thêm cột `sex`, `birth_year`, `activity_level` cho `users` (Mifflin-St Jeor cần tuổi + giới tính, TDEE cần hệ số vận động) + migration 0001. Viết `src/lib/energy.ts`, `src/lib/date.ts` (`todayInAppTz`), `src/actions/profile.ts` (`updateProfile` + `refresh()`), `src/db/queries/dashboard.ts`. Trang `/` (Suspense): khách thấy landing, user thấy thẻ TDEE/Mục tiêu calo, `CalorieIntakeCard` + `YogaHabitCard` (gọi `upsertDailyLog`, optimistic + hoàn tác khi lỗi), `ProfileCard`. `tsc`, `eslint`, `next build` pass; chưa test runtime.
+- **2026-11-11** — Hướng dẫn chuẩn form: chọn seed JSON thay vì gọi API runtime (WGER không có yoga, tránh phụ thuộc mạng). Ảnh gym lấy từ WGER `/api/v2/exerciseimage`, ảnh yoga từ Wikimedia Commons, kiểm tra thủ công từng ảnh khớp tư thế; Legs up the Wall tự vẽ SVG `public/exercises/legs-up-the-wall.svg` vì ảnh Viparita Karani trên Commons là bản đảo ngược cổ điển (dễ hiểu sai). Thêm cột `image_credit` + unique `name` (migration 0002), `scripts/seed-exercises.ts` + `npm run db:seed` (cài `tsx`). UI: `ExerciseInfoModal` (`<dialog>` native, animation `@starting-style`, khoá cuộn nền), tên bài trong `WorkoutLogger` thành nút mở modal, `YogaLibrary` lưới tư thế yoga. `tsc`, `eslint`, `next build` pass; chưa chạy seed/test trên thiết bị thật.
+- **2026-11-11** — Testing: setup Vitest + RTL theo guide Next 16 (`node_modules/next/dist/docs/01-app/02-guides/testing/vitest.md`). 67 test trong `__tests__/` (utils, components, actions). Lần chạy đầu 65/67 — phát hiện bug: thuộc tính `pattern` trên input làm trình duyệt chặn submit bằng bubble tiếng Anh nên thông báo lỗi tiếng Việt không bao giờ hiện → thêm `noValidate` cho form ở `WorkoutLogger`, `CalorieIntakeCard`, `ProfileForm`. Sau sửa 67/67 pass; `tsc`, `eslint`, `next build` pass.
+- **2026-11-11** — E2E Playwright: cài `@playwright/test`, `@clerk/testing`, `@clerk/backend`; thêm `playwright.config.ts`, `e2e/` (global-setup, auth.setup, guest, auth-flow, server-components, database), `scripts/e2e-neon-branch.ts` (tạo/xoá Neon branch qua API, tự dò org + project từ `DATABASE_URL`), script `test:e2e`, `test:e2e:ui`, `test:e2e:guest`, `test:e2e:report`; `.gitignore` thêm output Playwright. Lỗi gặp khi chạy: (1) giả định sai `/api/exercises` trả 401/404 — Clerk `auth.protect()` thực tế redirect 307 sang sign-in → sửa assertion; (2) đồng hồ máy nhanh ~17,5 phút làm Clerk coi session token là hết hạn (`session-token-expired-refresh-invalid-session-token`) → đồng bộ giờ Windows; (3) Neon API yêu cầu `org_id` khi liệt kê project → tự lấy qua `/users/me/organizations`. Kết quả 12/12 E2E pass, branch tạm đã bị xoá; `tsc`, `eslint`, 67/67 Vitest pass.
+- **2026-11-11** — Lịch tập mẫu: thêm cột `exercises.recommended_weight`, `exercises.tips` (migration 0003); seed bổ sung mức tạ/mẹo từ dữ liệu "nữ mới tập, BMI 25–28" và 6 bài mới (chưa có ảnh); `Leg Press` dùng cho "Sled Leg Press", "Bicep Curl & Tricep Extension" tách 2 bài. `src/lib/workout-templates.ts` định nghĩa 3 template theo tên bài (static, không cần bảng riêng). `WorkoutLogger`: section "Lịch tập mẫu" trên cùng + dòng "Tạ gợi ý"/💡 tips trên form nhập set. ESLint bỏ qua `playwright-report/`, `test-results/`. 75/75 Vitest, 13/13 E2E pass; `tsc`, `eslint`, `next build` pass. Cần chạy `db:migrate` + `db:seed` trên DB thật.
+- **2026-11-11** — Lịch tuần + Swap: cột `users.weekly_schedule` jsonb (migration 0004) — chọn JSON thay vì bảng riêng vì chỉ có 7 giá trị/user; dữ liệu null/sai → `DEFAULT_WEEKLY_SCHEDULE`. Template mới: Upper Body A/B (tách Upper Body cũ), Active Rest/Yoga, Nghỉ ngơi; Lower Body 1/2 thêm Cable Kickback / Step-up. Seed +13 bài gym (mức tạ của các bài mới là ước lượng, không có trong dữ liệu gốc); `Seated Cable Row` đổi nhóm chính thành "Lưng xô". UI: `TodayWorkoutCard`, `WeeklyScheduleModal`, nút Swap trong `ExerciseCard`. Thứ trong tuần tính bằng `weekdayOf(date)` (`getUTCDay()` trên chuỗi ngày giờ VN) thay vì `new Date().getDay()` để server/trình duyệt không lệch hydration. Swap: lần đầu so cả nhóm phụ ra gợi ý sai (Lat Pulldown → Bicep Curl) → chỉ lấy cùng nhóm chính, fallback nhóm phụ khi không có. Sửa test cũ "Save Workout…" bị race (`isPending` tắt sau khi status hiện) bằng `findByRole`. 105/105 Vitest (chạy 2 lần), 13/13 E2E; `tsc`, `eslint`, `next build` pass. Cần chạy `db:migrate` + `db:seed` trên DB thật.
+- **2026-11-12** — Ảnh động minh hoạ: khảo sát nguồn — video wger (78 video, đa số HEVC `.MOV` 30–390 MB) không dùng được trên mobile; free-exercise-db / wrkout bị loại vì ảnh cào từ Internet (tác giả tự nhận không có bản quyền); GIF 3D Goblet Squat trên wger bị loại vì nguồn gốc không rõ; Commons ít bài và không đồng bộ. Chọn Everkinetic (CC BY-SA 4.0, 2 khung SVG cùng canvas/bài): `scripts/build-exercise-animations.ts` (sharp: rasterize → crossfade 8 khung → cắt viền → GIF 16 màu, 107–221 KB/file), 22 bài đã kiểm tra bằng mắt; loại các cặp không khớp động tác (vd. 0132 không phải Bulgarian, 0130 không phải Goblet, 0095 cầm ngửa khác hướng dẫn Lat Pulldown). Thêm `sharp` vào devDependencies. UI: `ExerciseMedia` thay `ExerciseImage` (GIF/video, tạm dừng bằng chụp khung vào canvas, `muted` attribute cho iOS); E2E phát hiện lỗi a11y khi tạm dừng (img ẩn + canvas `aria-hidden` → mất mô tả ảnh) → canvas nhận `role="img"`. `YogaLibrary` hỗ trợ thumbnail video. 123/123 Vitest, 14/14 E2E; `tsc`, `eslint` pass. Cần `npm run db:seed` để DB nhận `gif_url` mới.
+- **2026-11-12** — Quay về ảnh tĩnh: GIF crossfade làm 2 tư thế chồng lên nhau, khó hiểu → gỡ toàn bộ ảnh động (`public/exercises/anim/`, `scripts/build-exercise-animations.ts`, `src/lib/exercise-media.ts`, nhãn "Ảnh động", nút tạm dừng, hỗ trợ video/canvas). `ExerciseMedia` chỉ còn `<img>` khung 4:3 `object-contain` (skeleton + fallback); `YogaLibrary` bỏ nhánh video. Script mới `scripts/build-exercise-images.ts` (`npm run assets:images`): 2 tư thế đặt cạnh nhau (tự xếp dọc khi bài nằm như Push-up / Lying Leg Curl để hình to hơn), nhãn "1 · Bắt đầu" / "2 · Kết thúc", PNG 1200×900 palette (~90 KB/ảnh). Khung "relaxation" của Everkinetic không phải lúc nào cũng là tư thế bắt đầu → cờ `startTension` cho Barbell Squat, Leg Press, Bench Press, Push-up, Sumo Squat, Overhead Tricep Extension, RDL, đối chiếu với hướng dẫn trong seed; kiểm tra bằng mắt cả 25 ảnh. Thêm mới: RDL (Everkinetic 0118), Dumbbell + Machine Shoulder Press (cặp PNG wger, CC BY-SA 3.0, làm trắng nền xám). Không dùng phong cách giải phẫu kiểu Franpol: ảnh Franpol trên wger mang watermark FitnessVolt / WeightTraining.guide (nghi đăng lại ảnh thương mại), chỉ phủ ~10/35 bài và không có Barbell Squat; Everkinetic SVG là nét đen, không có highlight cơ. Bulgarian Split Squat giữ ảnh Franpol (không tìm được nguồn mở thay thế; ảnh chỉ 474 px nên mờ). Sửa thêm test flaky có sẵn "lưu set thất bại → rollback" (race `isPending`, dùng `findBy`). 111/111 Vitest (4 lần liên tiếp), 16/16 E2E; `tsc`, `eslint` pass. Cần `npm run db:seed` để DB nhận `gif_url` mới.

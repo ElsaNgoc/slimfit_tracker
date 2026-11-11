@@ -1,0 +1,445 @@
+{
+  "$comment": "Seed bảng exercises. Ảnh gym từ wger.de (API /api/v2/exerciseimage), ảnh yoga từ Wikimedia Commons; license ghi trong imageCredit. instruction: mỗi dòng 1 bước, dòng bắt đầu 'Lưu ý:' hiển thị dạng mẹo. recommendedWeight/tips: mức tạ khởi điểm gợi ý cho nữ mới tập (BMI ~25–28), hiển thị trên thẻ bài tập.",
+  "exercises": [
+    {
+      "name": "Romanian Deadlift (RDL)",
+      "category": "gym",
+      "muscleGroup": "Đùi sau, Mông, Lưng dưới",
+      "gifUrl": "/exercises/steps/romanian-deadlift-rdl.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng thẳng, chân rộng bằng hông, cầm tạ trước đùi, gối hơi chùng.\nGập người bằng cách đẩy hông ra sau, giữ lưng thẳng, tạ trượt sát đùi xuống ống chân.\nHạ đến khi cảm thấy căng đùi sau (thường ngang giữa ống chân).\nSiết mông, đẩy hông về trước để đứng thẳng lại.\nLưu ý: Không cong lưng; gối giữ nguyên góc, đây không phải động tác squat.",
+      "recommendedWeight": "15–20 kg tổng cộng",
+      "tips": null
+    },
+    {
+      "name": "Hip Thrust",
+      "category": "gym",
+      "muscleGroup": "Mông, Đùi sau",
+      "gifUrl": "https://wger.de/media/exercise-images/1642/a81ad922-caf5-47f8-99b4-640cb0717436.webp",
+      "imageCredit": "AlucardEvil40 · wger.de · CC BY-SA 4.0",
+      "instruction": "Tựa phần lưng trên (dưới xương bả vai) vào mép ghế, đặt tạ lên nếp hông.\nHai bàn chân rộng bằng hông, cẳng chân vuông góc sàn khi lên đỉnh.\nĐẩy gót chân, nâng hông đến khi thân và đùi thành một đường thẳng.\nSiết mông 1–2 giây ở đỉnh rồi hạ chậm.\nLưu ý: Cằm hơi cúi, mắt nhìn về trước; không ưỡn lưng dưới ở đỉnh.",
+      "recommendedWeight": "20–30 kg (thanh đòn)",
+      "tips": "Có thể thay bằng tạ đơn 15 kg đặt lên hông."
+    },
+    {
+      "name": "Lat Pulldown",
+      "category": "gym",
+      "muscleGroup": "Lưng xô, Tay trước",
+      "gifUrl": "https://wger.de/media/exercise-images/158/0d51a0f2-622f-434b-beb8-1a003c54712a.png",
+      "imageCredit": "Franpol · wger.de · CC BY-SA 4.0",
+      "instruction": "Ngồi chèn đùi dưới đệm, nắm thanh rộng hơn vai.\nƯỡn ngực, hơi ngả người ra sau khoảng 10–15°.\nKéo thanh xuống ngang cằm/ngực trên, dẫn bằng khuỷu tay xuống dưới và ra sau.\nSiết lưng xô rồi thả lên chậm có kiểm soát đến khi tay duỗi.\nLưu ý: Không giật người ra sau lấy đà, không kéo thanh ra sau gáy.",
+      "recommendedWeight": "15–20 kg",
+      "tips": null
+    },
+    {
+      "name": "Glute Bridge",
+      "category": "gym",
+      "muscleGroup": "Mông, Đùi sau",
+      "gifUrl": "https://wger.de/media/exercise-images/265/7528acb4-b2cc-4b75-b6ae-d514cbd4f78b.png",
+      "imageCredit": "wger.de · CC BY-SA 4.0",
+      "instruction": "Nằm ngửa, gập gối, bàn chân đặt sàn rộng bằng hông, tay xuôi hai bên.\nSiết bụng, đẩy gót chân nâng hông lên đến khi vai–hông–gối thẳng hàng.\nGiữ 1–2 giây, siết mông, rồi hạ chậm.\nLưu ý: Có thể đặt tạ lên hông để tăng độ khó.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Goblet Squat",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông",
+      "gifUrl": "https://wger.de/media/exercise-images/203/1c052351-2af0-4227-aeb0-244008e4b0a8.jpeg",
+      "imageCredit": "philip · wger.de · CC BY-SA 4.0",
+      "instruction": "Ôm tạ đơn trước ngực, chân rộng hơn vai, mũi chân hơi xoay ra.\nHít vào, đẩy hông ra sau và hạ người, gối mở theo hướng mũi chân.\nHạ đến khi đùi song song sàn hoặc thấp hơn, ngực luôn thẳng.\nĐẩy cả bàn chân để đứng lên, thở ra.\nLưu ý: Gót chân không nhấc khỏi sàn, gối không đổ vào trong.",
+      "recommendedWeight": "10–15 kg",
+      "tips": null
+    },
+    {
+      "name": "Barbell Squat",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông, Core",
+      "gifUrl": "/exercises/steps/barbell-squat.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đặt thanh tạ lên cơ thang (sau vai), nắm thanh rộng hơn vai.\nChân rộng bằng vai, gồng bụng chặt trước khi xuống.\nHạ hông xuống và ra sau đến khi đùi song song sàn.\nĐẩy mạnh qua cả bàn chân để đứng lên.\nLưu ý: Giữ lưng trung tính, mắt nhìn thẳng; tập ở rack có thanh chặn an toàn.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Leg Press",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông",
+      "gifUrl": "/exercises/steps/leg-press.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi tựa lưng sát đệm, đặt bàn chân giữa bàn đạp rộng bằng hông.\nMở chốt an toàn, hạ bàn đạp đến khi gối gập khoảng 90°.\nĐẩy qua gót chân để duỗi chân, dừng trước khi khoá khớp gối.\nLưu ý: Hông và lưng dưới không nhấc khỏi đệm ở điểm thấp nhất.",
+      "recommendedWeight": "30–40 kg (không tính bàn đạp)",
+      "tips": "Đặt chân cao và rộng trên bàn đạp để dồn lực vào mông."
+    },
+    {
+      "name": "Bulgarian Split Squat",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông",
+      "gifUrl": "https://wger.de/media/exercise-images/988/6283b258-a4d7-4833-84f7-a38987022d3d.png",
+      "imageCredit": "Franpol · wger.de · CC BY-SA 4.0",
+      "instruction": "Đứng trước ghế khoảng 1 bước dài, gác mu bàn chân sau lên ghế.\nHạ người thẳng xuống đến khi đùi trước gần song song sàn.\nĐẩy qua gót chân trước để đứng lên. Tập đủ số rep rồi đổi chân.\nLưu ý: Thân hơi đổ về trước để tác động mông nhiều hơn.",
+      "recommendedWeight": "Bodyweight → 3–5 kg mỗi tay",
+      "tips": "Đổ người hơi về trước để dồn lực vào mông."
+    },
+    {
+      "name": "Lying Leg Curl",
+      "category": "gym",
+      "muscleGroup": "Đùi sau",
+      "gifUrl": "/exercises/steps/lying-leg-curl.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Nằm sấp trên máy, đệm chân đặt ngay trên gót (dưới bắp chân).\nGập gối kéo đệm về phía mông, giữ hông áp xuống đệm.\nGiữ 1 giây rồi hạ chậm.\nLưu ý: Không nhấc hông để lấy đà.",
+      "recommendedWeight": "10–15 kg",
+      "tips": null
+    },
+    {
+      "name": "Lunge",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông",
+      "gifUrl": "/exercises/steps/lunge.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng thẳng, có thể cầm tạ đơn hai bên.\nBước dài một chân về trước, hạ người đến khi hai gối gập khoảng 90°.\nĐẩy gót chân trước để về tư thế đứng, rồi đổi chân.\nLưu ý: Gối trước không vượt quá mũi chân quá nhiều, thân giữ thẳng.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Bench Press",
+      "category": "gym",
+      "muscleGroup": "Ngực, Vai trước, Tay sau",
+      "gifUrl": "/exercises/steps/bench-press.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Nằm trên ghế phẳng, mắt ngay dưới thanh đòn, bàn chân đặt chắc sàn, ép bả vai xuống.\nNắm thanh rộng hơn vai, nhấc thanh khỏi giá và giữ trên ngực.\nHạ thanh chậm xuống chạm nhẹ ngực dưới, khuỷu tay mở khoảng 45° so với thân.\nĐẩy thanh lên đến khi tay gần duỗi thẳng.\nLưu ý: Không nảy thanh khỏi ngực; tập nặng nên có người hỗ trợ.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Seated Cable Row",
+      "category": "gym",
+      "muscleGroup": "Lưng xô, Lưng giữa, Tay trước",
+      "gifUrl": "/exercises/steps/seated-cable-row.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi, chân đặt lên bàn đạp, gối hơi chùng, lưng thẳng.\nKéo tay cầm về bụng, khép hai bả vai lại phía sau.\nGiữ 1 giây rồi duỗi tay về trước có kiểm soát.\nLưu ý: Không ngả người ra sau quá nhiều để kéo.",
+      "recommendedWeight": "15–20 kg",
+      "tips": null
+    },
+    {
+      "name": "Dumbbell Shoulder Press",
+      "category": "gym",
+      "muscleGroup": "Vai, Tay sau",
+      "gifUrl": "/exercises/steps/dumbbell-shoulder-press.png",
+      "imageCredit": "Everkinetic · wger.de · CC BY-SA 3.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi ghế có tựa lưng, cầm tạ ngang vai, lòng bàn tay hướng về trước.\nĐẩy tạ thẳng lên trên đầu đến khi tay gần duỗi.\nHạ chậm về ngang vai.\nLưu ý: Gồng bụng, không ưỡn lưng dưới khi đẩy.",
+      "recommendedWeight": "3–5 kg mỗi tay",
+      "tips": null
+    },
+    {
+      "name": "Lateral Raise",
+      "category": "gym",
+      "muscleGroup": "Vai giữa",
+      "gifUrl": "/exercises/steps/lateral-raise.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng thẳng, cầm tạ hai bên hông, khuỷu tay hơi cong.\nNâng tạ sang ngang đến ngang vai, dẫn bằng khuỷu tay.\nHạ chậm về vị trí ban đầu.\nLưu ý: Dùng tạ nhẹ, không nhún vai hay đung đưa người.",
+      "recommendedWeight": "2–3 kg mỗi tay",
+      "tips": null
+    },
+    {
+      "name": "Plank",
+      "category": "gym",
+      "muscleGroup": "Core (Bụng)",
+      "gifUrl": "https://wger.de/media/exercise-images/458/b7bd9c28-9f1d-4647-bd17-ab6a3adf5770.png",
+      "imageCredit": "utkb · wger.de · CC BY-SA 4.0",
+      "instruction": "Chống cẳng tay xuống sàn, khuỷu tay ngay dưới vai.\nDuỗi thẳng chân, nâng người để đầu–hông–gót thành một đường thẳng.\nGồng bụng, siết mông, thở đều và giữ theo thời gian.\nLưu ý: Ghi số giây vào ô 'Số rep'. Không để hông võng hoặc chổng cao.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Push-up",
+      "category": "gym",
+      "muscleGroup": "Ngực, Tay sau, Core",
+      "gifUrl": "/exercises/steps/push-up.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Chống tay rộng hơn vai một chút, thân thẳng từ đầu đến gót.\nHạ ngực xuống gần sàn, khuỷu tay mở khoảng 45°.\nĐẩy sàn để về vị trí ban đầu.\nLưu ý: Mới tập có thể chống gối để giảm độ khó.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Hip Abduction",
+      "category": "gym",
+      "muscleGroup": "Mông nhỡ (mông bên), Hông",
+      "gifUrl": "/exercises/steps/hip-abduction.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi vào máy, lưng tựa sát đệm, đặt mặt ngoài đùi/gối vào hai tấm đệm.\nĐẩy hai chân mở rộng ra ngoài bằng lực mông.\nGiữ 1 giây ở điểm mở rộng nhất.\nThu chân về chậm, không để tạ đập xuống.\nLưu ý: Hơi nghiêng người về trước giúp cảm nhận mông rõ hơn.",
+      "recommendedWeight": "15–20 kg",
+      "tips": "Giữ 1 giây ở điểm mở rộng nhất."
+    },
+    {
+      "name": "Leg Extension",
+      "category": "gym",
+      "muscleGroup": "Đùi trước",
+      "gifUrl": "/exercises/steps/leg-extension.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi vào máy, lưng tựa sát đệm, đệm chân đặt ở cổ chân.\nDuỗi thẳng gối để nâng đệm lên, siết đùi trước ở điểm cao nhất.\nHạ xuống chậm khoảng 2–3 giây.\nLưu ý: Không khoá gối mạnh ở điểm cao nhất, không dùng đà.",
+      "recommendedWeight": "10–15 kg",
+      "tips": "Tập chậm, kiểm soát cả lúc nâng và hạ."
+    },
+    {
+      "name": "Machine Chest Press",
+      "category": "gym",
+      "muscleGroup": "Ngực, Vai trước, Tay sau",
+      "gifUrl": "/exercises/steps/machine-chest-press.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Chỉnh ghế để tay cầm ngang giữa ngực.\nLưng và vai tựa sát đệm, ép nhẹ hai bả vai ra sau.\nĐẩy tay cầm về trước đến khi tay gần thẳng.\nThu về chậm đến khi cảm thấy ngực căng nhẹ.\nLưu ý: Không nhún vai, không khoá khuỷu tay.",
+      "recommendedWeight": "5–10 kg",
+      "tips": null
+    },
+    {
+      "name": "Cable Face Pull",
+      "category": "gym",
+      "muscleGroup": "Vai sau, Lưng trên",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Gắn dây thừng ở ròng rọc cao ngang mặt, nắm hai đầu dây.\nLùi ra sau một bước, tay duỗi thẳng về trước.\nKéo dây về phía mặt, tách hai tay ra hai bên tai, khuỷu tay cao.\nGiữ 1 giây, siết bả vai rồi duỗi tay về chậm.\nLưu ý: Không ngả người ra sau để kéo.",
+      "recommendedWeight": "5–10 kg",
+      "tips": null
+    },
+    {
+      "name": "Bicep Curl",
+      "category": "gym",
+      "muscleGroup": "Tay trước",
+      "gifUrl": "/exercises/steps/bicep-curl.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng thẳng, cầm tạ đơn hai tay, lòng bàn tay hướng về trước.\nGiữ khuỷu tay sát người, cuộn tạ lên ngang vai.\nSiết tay trước ở điểm cao nhất rồi hạ xuống chậm.\nLưu ý: Không đung đưa thân người để lấy đà.",
+      "recommendedWeight": "3–5 kg tạ đơn mỗi tay, hoặc 10 kg cáp",
+      "tips": null
+    },
+    {
+      "name": "Tricep Extension",
+      "category": "gym",
+      "muscleGroup": "Tay sau",
+      "gifUrl": "/exercises/steps/tricep-extension.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng trước máy cáp, nắm dây thừng/thanh cầm ở ròng rọc cao.\nKhép khuỷu tay sát hai bên sườn.\nDuỗi thẳng tay xuống dưới, siết tay sau ở điểm cuối.\nThu tay lên chậm, khuỷu tay giữ cố định.\nLưu ý: Có thể tập bằng tạ đơn qua đầu nếu không có máy cáp.",
+      "recommendedWeight": "10 kg cáp, hoặc 3–5 kg tạ đơn",
+      "tips": null
+    },
+    {
+      "name": "Step-up",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông",
+      "gifUrl": "/exercises/steps/step-up.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng trước bục/ghế cao ngang gối, cầm tạ đơn hai bên (nếu có).\nĐặt cả bàn chân phải lên bục.\nĐạp gót chân phải để đứng thẳng lên bục, chân trái theo sau.\nBước xuống chậm, đổi chân hoặc làm hết số rep một bên.\nLưu ý: Gối thẳng hướng mũi chân, không đổ vào trong.",
+      "recommendedWeight": "Bodyweight → 3–5 kg mỗi tay",
+      "tips": "Dồn lực vào gót chân trên bục, không bật chân sau."
+    },
+    {
+      "name": "Cable Kickback",
+      "category": "gym",
+      "muscleGroup": "Mông",
+      "gifUrl": "/exercises/steps/cable-kickback.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Gắn đai cổ chân vào ròng rọc thấp, quay mặt vào máy, tay bám khung.\nHơi gập người về trước, gối chân trụ chùng nhẹ.\nĐá chân về sau và hơi lên trên bằng lực mông.\nGiữ 1 giây rồi thu chân về chậm.\nLưu ý: Chuyển động ở hông, không vung chân bằng đà.",
+      "recommendedWeight": "5–7,5 kg cáp",
+      "tips": "Siết mông ở điểm cuối, không ưỡn lưng dưới."
+    },
+    {
+      "name": "Good Morning",
+      "category": "gym",
+      "muscleGroup": "Đùi sau, Mông, Lưng dưới",
+      "gifUrl": "/exercises/steps/good-morning.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đặt thanh đòn lên vai sau (như squat), chân rộng bằng hông, gối hơi chùng.\nĐẩy hông ra sau, gập thân người về trước, lưng giữ thẳng.\nHạ đến khi thân gần song song sàn hoặc đùi sau căng.\nSiết mông, đẩy hông về trước để đứng lên.\nLưu ý: Không cong lưng; có thể tập bằng gậy/bodyweight trước.",
+      "recommendedWeight": "Thanh đòn trống hoặc 10–15 kg",
+      "tips": "Bắt đầu thật nhẹ, ưu tiên lưng thẳng."
+    },
+    {
+      "name": "Incline Dumbbell Press",
+      "category": "gym",
+      "muscleGroup": "Ngực, Vai trước, Tay sau",
+      "gifUrl": "/exercises/steps/incline-dumbbell-press.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Chỉnh ghế dốc 30–45°, nằm tựa lưng, mỗi tay một tạ đơn ngang ngực.\nÉp nhẹ bả vai ra sau, bàn chân bám sàn.\nĐẩy tạ lên trên đến khi tay gần thẳng.\nHạ tạ chậm về ngang ngực trên.\nLưu ý: Khuỷu tay khoảng 45° so với thân, không mở ngang vai.",
+      "recommendedWeight": "4–6 kg mỗi tay",
+      "tips": "Ghế dốc 30–45°, hạ tạ chậm ngang ngực trên."
+    },
+    {
+      "name": "One-arm Dumbbell Row",
+      "category": "gym",
+      "muscleGroup": "Lưng xô, Lưng giữa, Tay trước",
+      "gifUrl": "/exercises/steps/one-arm-dumbbell-row.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Một tay và một gối đặt lên ghế phẳng, lưng thẳng song song sàn.\nTay còn lại cầm tạ đơn, buông thẳng xuống.\nKéo tạ lên sát hông, khuỷu tay đi sát thân.\nSiết lưng 1 giây rồi hạ xuống chậm.\nLưu ý: Không giật tạ bằng vai hay xoay người.",
+      "recommendedWeight": "6–8 kg",
+      "tips": "Kéo khuỷu tay về phía hông, không xoay thân."
+    },
+    {
+      "name": "Hammer Curl",
+      "category": "gym",
+      "muscleGroup": "Tay trước, Cẳng tay",
+      "gifUrl": "/exercises/steps/hammer-curl.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng thẳng, cầm tạ đơn hai bên, lòng bàn tay hướng vào thân.\nGiữ khuỷu tay sát người, cuộn tạ lên ngang vai.\nHạ xuống chậm.\nLưu ý: Không đung đưa thân người.",
+      "recommendedWeight": "3–5 kg mỗi tay",
+      "tips": "Lòng bàn tay hướng vào nhau suốt động tác."
+    },
+    {
+      "name": "Reverse Pec Deck",
+      "category": "gym",
+      "muscleGroup": "Vai sau, Lưng trên",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Ngồi quay mặt vào máy pec deck, ngực tựa đệm.\nNắm tay cầm, tay duỗi gần thẳng phía trước.\nMở rộng hai tay ra sau đến ngang vai.\nGiữ 1 giây rồi thu về chậm.\nLưu ý: Không nhún vai, không ngả người ra sau.",
+      "recommendedWeight": "5–10 kg",
+      "tips": "Mở tay bằng vai sau, giữ 1 giây ở điểm mở."
+    },
+    {
+      "name": "Sumo Squat",
+      "category": "gym",
+      "muscleGroup": "Đùi trước, Mông, Đùi trong",
+      "gifUrl": "/exercises/steps/sumo-squat.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Đứng chân rộng hơn vai, mũi chân xoay ra ngoài ~45°, hai tay cầm một tạ đơn trước người.\nHạ hông xuống thẳng, gối mở theo hướng mũi chân.\nHạ đến khi đùi song song sàn.\nĐạp gót, siết mông để đứng lên.\nLưu ý: Lưng thẳng, ngực mở.",
+      "recommendedWeight": "10–15 kg (tạ đơn)",
+      "tips": "Chân rộng hơn vai, mũi chân xoay ra ngoài."
+    },
+    {
+      "name": "Cable Lateral Raise",
+      "category": "gym",
+      "muscleGroup": "Vai giữa",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Đứng nghiêng cạnh ròng rọc thấp, tay xa máy nắm tay cầm.\nNâng tay sang ngang đến ngang vai, khuỷu hơi chùng.\nHạ xuống chậm, giữ căng cáp.\nLưu ý: Không nhún vai, không nghiêng người lấy đà.",
+      "recommendedWeight": "2,5–5 kg cáp",
+      "tips": "Nâng tay ngang vai, dẫn bằng khuỷu tay."
+    },
+    {
+      "name": "Machine Shoulder Press",
+      "category": "gym",
+      "muscleGroup": "Vai, Tay sau",
+      "gifUrl": "/exercises/steps/machine-shoulder-press.png",
+      "imageCredit": "wger.de · CC BY-SA 3.0 (ghép 2 tư thế)",
+      "instruction": "Chỉnh ghế để tay cầm ngang vai, lưng tựa sát đệm.\nĐẩy tay cầm lên trên đến khi tay gần thẳng.\nHạ xuống chậm về ngang vai.\nLưu ý: Không ưỡn lưng, không khoá khuỷu tay.",
+      "recommendedWeight": "5–10 kg",
+      "tips": "Chỉnh ghế để tay cầm ngang vai."
+    },
+    {
+      "name": "Banded Lateral Walk",
+      "category": "gym",
+      "muscleGroup": "Mông nhỡ (mông bên), Hông",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Đeo dây kháng lực quanh đùi (trên gối) hoặc cổ chân.\nHạ người xuống tư thế nửa squat, chân rộng bằng hông.\nBước ngang sang một bên 10–15 bước, rồi đổi chiều.\nLưu ý: Không để gối đổ vào trong, thân giữ thẳng.",
+      "recommendedWeight": "Dây kháng lực nhẹ–vừa",
+      "tips": "Giữ tư thế nửa squat, dây luôn căng."
+    },
+    {
+      "name": "Overhead Dumbbell Tricep Extension",
+      "category": "gym",
+      "muscleGroup": "Tay sau",
+      "gifUrl": "/exercises/steps/overhead-dumbbell-tricep-extension.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi hoặc đứng thẳng, hai tay cầm một tạ đơn giơ thẳng qua đầu.\nGập khuỷu, hạ tạ ra sau đầu.\nDuỗi tay đẩy tạ lên lại, siết tay sau.\nLưu ý: Khuỷu tay không mở rộng ra hai bên.",
+      "recommendedWeight": "4–6 kg (1 tạ đơn, hai tay)",
+      "tips": "Khuỷu tay hướng lên trần, sát đầu."
+    },
+    {
+      "name": "Seated Leg Curl",
+      "category": "gym",
+      "muscleGroup": "Đùi sau",
+      "gifUrl": "/exercises/steps/seated-leg-curl.png",
+      "imageCredit": "Everkinetic · CC BY-SA 4.0 (ghép 2 tư thế)",
+      "instruction": "Ngồi vào máy, đệm chân đặt trên cổ chân, đệm đùi giữ chặt.\nGập gối kéo đệm xuống dưới và về sau.\nSiết đùi sau 1 giây rồi duỗi lại chậm.\nLưu ý: Lưng tựa sát đệm, không nhấc hông.",
+      "recommendedWeight": "10–15 kg",
+      "tips": "Hạ chậm 2–3 giây để đùi sau làm việc."
+    },
+    {
+      "name": "Downward Dog",
+      "category": "yoga",
+      "muscleGroup": "Đùi sau, Bắp chân, Vai, Lưng",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Downward-Facing-Dog.JPG/960px-Downward-Facing-Dog.JPG",
+      "imageCredit": "Iveto · Wikimedia Commons · CC BY 3.0",
+      "instruction": "Bắt đầu ở tư thế bò: tay dưới vai, gối dưới hông.\nCo ngón chân, nhấc gối và đẩy hông lên cao tạo hình chữ V ngược.\nẤn đều lòng bàn tay, đẩy ngực về phía đùi, đầu thả lỏng giữa hai tay.\nHạ dần gót chân về phía sàn, giữ 5–8 nhịp thở sâu.\nLưu ý: Đùi sau còn cứng thì cứ chùng gối, ưu tiên lưng thẳng hơn gót chạm sàn.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Legs up the Wall",
+      "category": "yoga",
+      "muscleGroup": "Đùi sau, Lưng dưới (thư giãn, hồi phục)",
+      "gifUrl": "/exercises/legs-up-the-wall.svg",
+      "imageCredit": "Minh hoạ: Slimfit Tracker",
+      "instruction": "Ngồi nghiêng, một bên hông sát chân tường.\nXoay người nằm ngửa, đồng thời đưa hai chân dựa thẳng lên tường.\nMông càng sát tường càng tốt; có thể kê gối mỏng dưới hông.\nThả lỏng hai tay hai bên, nhắm mắt, thở chậm bằng bụng 3–10 phút.\nLưu ý: Rất tốt sau buổi tập chân hoặc trước khi ngủ. Tê chân thì co gối lại một lúc.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Child's Pose",
+      "category": "yoga",
+      "muscleGroup": "Lưng dưới, Hông, Vai",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Balasana.JPG/960px-Balasana.JPG",
+      "imageCredit": "Iveto · Wikimedia Commons · CC BY-SA 4.0",
+      "instruction": "Quỳ gối, hai ngón cái chạm nhau, gối mở rộng bằng hông hoặc rộng hơn.\nNgồi mông về phía gót chân, gập người về trước, trán chạm sàn.\nDuỗi tay ra trước hoặc thả xuôi theo thân.\nThở sâu vào lưng, giữ 1–3 phút.\nLưu ý: Kê gối dưới mông nếu không ngồi chạm gót được.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Cobra Pose",
+      "category": "yoga",
+      "muscleGroup": "Lưng, Bụng (giãn), Ngực",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Bhujangasana_Yoga-Asana_Nina-Mel.jpg/960px-Bhujangasana_Yoga-Asana_Nina-Mel.jpg",
+      "imageCredit": "Kennguru · Wikimedia Commons · CC BY 3.0",
+      "instruction": "Nằm sấp, mu bàn chân áp sàn, hai tay đặt dưới vai.\nHít vào, ấn nhẹ tay để nâng ngực lên, khuỷu tay khép sát thân.\nVai kéo xa tai, mắt nhìn về trước, giữ 3–5 nhịp thở.\nThở ra, hạ người xuống.\nLưu ý: Chỉ nâng đến mức lưng dưới không đau; không cần duỗi thẳng tay.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Cat-Cow",
+      "category": "yoga",
+      "muscleGroup": "Cột sống, Lưng, Cổ",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Yoga_at_Your_Park_-_Bitilasana.jpg/960px-Yoga_at_Your_Park_-_Bitilasana.jpg",
+      "imageCredit": "Mary O'Neill · Wikimedia Commons · Public domain",
+      "instruction": "Tư thế bò: tay dưới vai, gối dưới hông, lưng phẳng.\nHít vào (Cow): võng lưng, ngực mở, mắt nhìn lên.\nThở ra (Cat): cong tròn lưng, hóp bụng, cằm hướng về ngực.\nLặp lại nhịp nhàng theo hơi thở 8–10 lần.\nLưu ý: Ảnh minh hoạ pha 'Cow'.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Seated Forward Fold",
+      "category": "yoga",
+      "muscleGroup": "Đùi sau, Lưng",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Paschimottanasana.jpg",
+      "imageCredit": "Joseph RENGER · Wikimedia Commons · CC BY-SA 3.0",
+      "instruction": "Ngồi duỗi thẳng hai chân về trước, mũi chân hướng lên.\nHít vào, vươn dài cột sống, giơ tay lên.\nThở ra, gập người từ hông về trước, tay nắm ống chân hoặc bàn chân.\nGiữ 5–10 nhịp thở, mỗi lần thở ra gập sâu thêm một chút.\nLưu ý: Giữ lưng dài thay vì cố cúi đầu chạm gối; có thể chùng gối.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Pigeon Stretch",
+      "category": "yoga",
+      "muscleGroup": "Mông, Hông",
+      "gifUrl": "https://wger.de/media/exercise-images/1872/df982df1-512a-4eb9-acd9-68cc1c265df6.png",
+      "imageCredit": "Davidgj32 · wger.de · CC BY-SA 4.0",
+      "instruction": "Từ tư thế bò, đưa gối phải về trước sau cổ tay phải, cẳng chân chéo trước người.\nDuỗi chân trái thẳng ra sau, mu bàn chân áp sàn.\nGiữ hông vuông, từ từ gập người về trước nếu thoải mái.\nGiữ 1–2 phút rồi đổi bên.\nLưu ý: Đau gối thì kê gối/khăn dưới hông bên chân trước.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Supine Figure Four",
+      "category": "yoga",
+      "muscleGroup": "Mông, Hông",
+      "gifUrl": "https://wger.de/media/exercise-images/1869/c49187bd-9f90-4a7a-b25e-1d50e857a104.png",
+      "imageCredit": "Davidgj32 · wger.de · CC BY-SA 4.0",
+      "instruction": "Nằm ngửa, gập hai gối, bàn chân đặt sàn.\nGác mắt cá chân phải lên đùi trái tạo hình số 4.\nLuồn tay ôm sau đùi trái, kéo nhẹ hai chân về phía ngực.\nGiữ 30–60 giây rồi đổi bên.\nLưu ý: Phiên bản nhẹ nhàng hơn của Pigeon, hợp cho người mới.",
+      "recommendedWeight": null,
+      "tips": null
+    },
+    {
+      "name": "Reclined Bound Angle",
+      "category": "yoga",
+      "muscleGroup": "Hông, Đùi trong (thư giãn)",
+      "gifUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Mr-yoga-reclined-bound-angle.jpg",
+      "imageCredit": "Mr. Yoga · Wikimedia Commons · CC BY-SA 4.0",
+      "instruction": "Nằm ngửa, chụm hai lòng bàn chân lại, để gối mở sang hai bên.\nĐặt tay lên bụng hoặc thả lỏng hai bên.\nThả lỏng hông, thở chậm và sâu 2–5 phút.\nLưu ý: Kê gối dưới mỗi đùi nếu thấy căng đùi trong.",
+      "recommendedWeight": null,
+      "tips": null
+    }
+  ]
+}
