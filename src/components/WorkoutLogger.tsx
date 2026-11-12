@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import {
   createWorkoutLog,
   deleteWorkoutLog,
@@ -10,6 +10,7 @@ import {
 import { ExerciseInfoModal, type ExerciseDetail } from "@/components/ExerciseInfoModal";
 import { TodayWorkoutCard } from "@/components/workout/TodayWorkoutCard";
 import { WeeklyScheduleModal } from "@/components/workout/WeeklyScheduleModal";
+import { ScheduleSettingsModal } from "@/components/workout/ScheduleSettingsModal";
 import { weekdayOf } from "@/lib/date";
 import { findSwapAlternatives } from "@/lib/exercise-swap";
 import {
@@ -43,26 +44,75 @@ const EMPTY_DRAFT: Draft = { sets: "3", reps: "10", weight: "" };
 let keySeq = 0;
 const nextKey = () => `k${++keySeq}`;
 
+/** Thẻ bài tập mới cho các bài của template (bỏ qua bài đã có), kèm thông báo cho người dùng. */
+function buildTemplateEntries(
+  template: WorkoutTemplate,
+  exerciseByName: ReadonlyMap<string, GymExercise>,
+  usedIds: ReadonlySet<number>,
+): { entries: ExerciseEntry[]; message: string } {
+  const found = template.exerciseNames.flatMap((n) => exerciseByName.get(n) ?? []);
+  const missing = template.exerciseNames.length - found.length;
+  const toAdd = found.filter((e) => !usedIds.has(e.id));
+
+  const parts = [
+    toAdd.length > 0
+      ? `Đã thêm ${toAdd.length} bài từ ${template.name}.`
+      : `Các bài của ${template.name} đã có trong buổi tập.`,
+  ];
+  if (missing > 0) parts.push(`${missing} bài chưa có trong hệ thống (cần chạy db:seed).`);
+
+  return {
+    entries: toAdd.map((e) => ({
+      key: nextKey(),
+      exerciseId: e.id,
+      sets: [],
+      draft: { ...EMPTY_DRAFT, ...TEMPLATE_DEFAULT_DRAFT },
+    })),
+    message: parts.join(" "),
+  };
+}
+
 // ---------- Component ----------
 
 export function WorkoutLogger({
   exercises,
   today,
   schedule = DEFAULT_WEEKLY_SCHEDULE,
+  autoStart = false,
+  openSettings = false,
 }: {
   exercises: GymExercise[];
   /** `YYYY-MM-DD` theo giờ VN (server tính). */
   today: string;
   schedule?: WeeklySchedule;
+  /** `/workouts?start=today` (nút "Bắt đầu tập" ở Tổng quan): nạp sẵn bài của buổi hôm nay. */
+  autoStart?: boolean;
+  /** `/workouts?schedule=edit`: mở sẵn modal Cài đặt lịch tuần. */
+  openSettings?: boolean;
 }) {
+  const exerciseByName = useMemo(() => new Map(exercises.map((e) => [e.name, e])), [exercises]);
+
+  // Nạp sẵn ngay ở state khởi tạo (không cần effect) để lần render đầu đã có đủ bài.
+  const [initial] = useState(() => {
+    const t = templateForDay(schedule, weekdayOf(today));
+    return autoStart && t.kind === "gym" ? buildTemplateEntries(t, exerciseByName, new Set()) : null;
+  });
+
   const [date, setDate] = useState(today);
   const [notes, setNotes] = useState("");
-  const [entries, setEntries] = useState<ExerciseEntry[]>([]);
+  const [entries, setEntries] = useState<ExerciseEntry[]>(initial?.entries ?? []);
   const [selectedId, setSelectedId] = useState("");
   const [logId, setLogId] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>({ type: "idle" });
-  const [templateMsg, setTemplateMsg] = useState<string | null>(null);
+  const [templateMsg, setTemplateMsg] = useState<string | null>(initial?.message ?? null);
   const [weekOpen, setWeekOpen] = useState(false);
+  // `key` đổi mỗi lần mở → bản nháp trong modal luôn bắt đầu từ lịch đã lưu
+  const [settings, setSettings] = useState({ open: openSettings, key: 0 });
+
+  // Bỏ ?start / ?schedule khỏi URL sau khi đã dùng, để tải lại trang không nạp bài lần nữa.
+  useEffect(() => {
+    if (autoStart || openSettings) window.history.replaceState(null, "", "/workouts");
+  }, [autoStart, openSettings]);
   const [isPending, startTransition] = useTransition();
   const [info, setInfo] = useState<{ exercise: GymExercise | null; open: boolean }>({
     exercise: null,
@@ -71,8 +121,6 @@ export function WorkoutLogger({
   const ids = useId();
 
   const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
-  const exerciseByName = useMemo(() => new Map(exercises.map((e) => [e.name, e])), [exercises]);
-
   /** Nhóm bài tập theo nhóm cơ cho <optgroup>. */
   const grouped = useMemo(() => {
     const groups = new Map<string, GymExercise[]>();
@@ -111,29 +159,16 @@ export function WorkoutLogger({
 
   /** Thêm toàn bộ bài của template (bỏ qua bài đã có trong buổi tập), giữ thứ tự của template. */
   function applyTemplate(template: WorkoutTemplate) {
-    const found = template.exerciseNames.flatMap((n) => exerciseByName.get(n) ?? []);
-    const missing = template.exerciseNames.length - found.length;
-    const toAdd = found.filter((e) => !usedIds.has(e.id));
-
-    setEntries((prev) => [
-      ...prev,
-      ...toAdd.map((e) => ({
-        key: nextKey(),
-        exerciseId: e.id,
-        sets: [],
-        draft: { ...EMPTY_DRAFT, ...TEMPLATE_DEFAULT_DRAFT },
-      })),
-    ]);
+    const { entries: added, message } = buildTemplateEntries(template, exerciseByName, usedIds);
+    setEntries((prev) => [...prev, ...added]);
     touch();
-
-    const parts = [
-      toAdd.length > 0
-        ? `Đã thêm ${toAdd.length} bài từ ${template.name}.`
-        : `Các bài của ${template.name} đã có trong buổi tập.`,
-    ];
-    if (missing > 0) parts.push(`${missing} bài chưa có trong hệ thống (cần chạy db:seed).`);
-    setTemplateMsg(parts.join(" "));
+    setTemplateMsg(message);
   }
+
+  const openScheduleSettings = () => {
+    setWeekOpen(false);
+    setSettings((s) => ({ open: true, key: s.key + 1 }));
+  };
 
   /** Đổi bài của một thẻ sang bài khác (giữ set đã nhập + số set/rep, xoá mức tạ nháp vì bài khác). */
   function swapExercise(key: string, newId: number) {
@@ -245,6 +280,7 @@ export function WorkoutLogger({
           message={templateMsg}
           onStart={() => applyTemplate(suggested)}
           onOpenWeek={() => setWeekOpen(true)}
+          onOpenSettings={openScheduleSettings}
         />
       )}
 
@@ -353,6 +389,19 @@ export function WorkoutLogger({
           applyTemplate(t);
           setWeekOpen(false);
         }}
+        onEdit={openScheduleSettings}
+      />
+
+      <ScheduleSettingsModal
+        key={settings.key}
+        open={settings.open}
+        schedule={schedule}
+        today={weekdayOf(today)}
+        onClose={() => setSettings((s) => ({ ...s, open: false }))}
+        onSaved={() => {
+          setSettings((s) => ({ ...s, open: false }));
+          setTemplateMsg("Đã lưu lịch tuần. Gợi ý đã cập nhật theo lịch mới.");
+        }}
       />
 
       <ExerciseInfoModal
@@ -361,8 +410,8 @@ export function WorkoutLogger({
         onClose={() => setInfo((i) => ({ ...i, open: false }))}
       />
 
-      {/* Thanh lưu cố định dưới màn hình — dễ bấm bằng ngón cái */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-800 bg-zinc-950/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+      {/* Thanh lưu cố định ngay trên thanh tab đáy (mobile) / đáy màn hình (desktop) — dễ bấm bằng ngón cái */}
+      <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 border-t border-zinc-800 bg-zinc-950/95 px-4 pt-3 pb-3 backdrop-blur md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-3xl flex-col gap-2">
           {status.type !== "idle" && (
             <p

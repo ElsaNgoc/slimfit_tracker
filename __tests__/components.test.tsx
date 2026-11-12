@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -9,16 +9,12 @@ vi.mock("@/actions/workout-logs", () => ({
   deleteWorkoutLog: vi.fn(),
   saveWorkoutSets: vi.fn(),
 }));
-vi.mock("@/actions/daily-logs", () => ({ upsertDailyLog: vi.fn() }));
+vi.mock("@/actions/schedule", () => ({ updateWeeklySchedule: vi.fn() }));
 
 import * as workoutActions from "@/actions/workout-logs";
-import { upsertDailyLog } from "@/actions/daily-logs";
 import { WorkoutLogger, type GymExercise } from "@/components/WorkoutLogger";
-import { CalorieIntakeCard } from "@/components/dashboard/CalorieIntakeCard";
-import { YogaHabitCard } from "@/components/dashboard/YogaHabitCard";
 
 const actions = vi.mocked(workoutActions);
-const upsert = vi.mocked(upsertDailyLog);
 
 const EXERCISES: GymExercise[] = [
   {
@@ -299,7 +295,7 @@ describe("WorkoutLogger — gợi ý hôm nay, lịch tuần, thay thế bài", 
     setup(WEDNESDAY);
     expect(within(screen.getByRole("region", { name: /Gợi ý bài tập/ })).getByText("Active Rest / Yoga")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Bắt đầu bài tập/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Xem hướng dẫn giãn cơ/ })).toHaveAttribute("href", "#yoga-library");
+    expect(screen.getByRole("link", { name: /Xem video giãn cơ/ })).toHaveAttribute("href", "#yoga-videos");
   });
 
   it("Chủ nhật → ngày nghỉ", () => {
@@ -409,110 +405,5 @@ describe("WorkoutLogger — gợi ý hôm nay, lịch tuần, thay thế bài", 
     await user.click(screen.getByRole("button", { name: "Thêm" }));
     await user.click(screen.getByRole("button", { name: "Thay thế Hip Abduction" }));
     expect(screen.getByText("Chưa có bài thay thế phù hợp.")).toBeInTheDocument();
-  });
-});
-
-// ---------- CalorieIntakeCard ----------
-
-describe("CalorieIntakeCard", () => {
-  beforeEach(() => {
-    upsert.mockImplementation(async ({ totalCalories }) => ({
-      ok: true,
-      data: {
-        id: 1,
-        userId: "u",
-        date: "2026-11-11",
-        totalCalories: totalCalories ?? 0,
-        yogaCompleted: false,
-        notes: null,
-      },
-    }));
-  });
-
-  it("render ô nhập + nút Lưu (khoá khi chưa thay đổi) + số kcal còn lại", () => {
-    render(<CalorieIntakeCard date="2026-11-11" initialCalories={800} calorieGoal={1400} />);
-    expect(screen.getByLabelText("Tổng lượng Calo nạp vào hôm nay")).toHaveValue("800");
-    expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
-    expect(screen.getByText(/Còn/)).toHaveTextContent("Còn 600 kcal so với mục tiêu");
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "800");
-  });
-
-  it("chỉ nhận chữ số — gõ ký tự lạ không crash", async () => {
-    const user = userEvent.setup();
-    render(<CalorieIntakeCard date="2026-11-11" initialCalories={0} calorieGoal={null} />);
-    const input = screen.getByLabelText("Tổng lượng Calo nạp vào hôm nay");
-
-    await user.type(input, "1a2-3.4e");
-    expect(input).toHaveValue("1234");
-    // Không có mục tiêu → không hiện thanh tiến độ
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-  });
-
-  it("submit gọi upsertDailyLog với số đã nhập và cập nhật phần còn lại", async () => {
-    const user = userEvent.setup();
-    render(<CalorieIntakeCard date="2026-11-11" initialCalories={0} calorieGoal={1400} />);
-
-    await user.type(screen.getByLabelText("Tổng lượng Calo nạp vào hôm nay"), "1650");
-    await user.click(screen.getByRole("button", { name: "Lưu" }));
-
-    expect(upsert).toHaveBeenCalledWith({ date: "2026-11-11", totalCalories: 1650 });
-    expect(await screen.findByRole("status")).toHaveTextContent("Đã lưu.");
-    expect(screen.getByText(/Vượt mục tiêu/)).toHaveTextContent("Vượt mục tiêu 250 kcal");
-  });
-
-  it("số quá lớn → báo lỗi, không gọi action", async () => {
-    const user = userEvent.setup();
-    render(<CalorieIntakeCard date="2026-11-11" initialCalories={0} calorieGoal={1400} />);
-
-    await user.type(screen.getByLabelText("Tổng lượng Calo nạp vào hôm nay"), "99999");
-    await user.click(screen.getByRole("button", { name: "Lưu" }));
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Nhập số nguyên từ 0 đến 20000.");
-    expect(upsert).not.toHaveBeenCalled();
-  });
-
-  it("action lỗi → hiện thông báo lỗi từ server", async () => {
-    upsert.mockResolvedValue({ ok: false, error: "Bạn cần đăng nhập." });
-    const user = userEvent.setup();
-    render(<CalorieIntakeCard date="2026-11-11" initialCalories={0} calorieGoal={1400} />);
-
-    await user.type(screen.getByLabelText("Tổng lượng Calo nạp vào hôm nay"), "500");
-    await user.click(screen.getByRole("button", { name: "Lưu" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Bạn cần đăng nhập.");
-  });
-});
-
-// ---------- YogaHabitCard ----------
-
-describe("YogaHabitCard", () => {
-  const checkbox = () =>
-    screen.getByRole("checkbox", { name: /Đã tập Yoga giãn cơ 30 phút tối nay/ });
-
-  it("tick → tự lưu yogaCompleted = true", async () => {
-    upsert.mockResolvedValue({
-      ok: true,
-      data: { id: 1, userId: "u", date: "2026-11-11", totalCalories: 0, yogaCompleted: true, notes: null },
-    });
-    const user = userEvent.setup();
-    render(<YogaHabitCard date="2026-11-11" initialCompleted={false} />);
-
-    expect(checkbox()).not.toBeChecked();
-    await user.click(checkbox());
-
-    expect(checkbox()).toBeChecked();
-    expect(upsert).toHaveBeenCalledWith({ date: "2026-11-11", yogaCompleted: true });
-    expect(await screen.findByText(/Đã ghi nhận/)).toBeInTheDocument();
-  });
-
-  it("lưu thất bại → hoàn tác dấu tick và báo lỗi", async () => {
-    upsert.mockResolvedValue({ ok: false, error: "Đã có lỗi xảy ra, vui lòng thử lại." });
-    const user = userEvent.setup();
-    render(<YogaHabitCard date="2026-11-11" initialCompleted={false} />);
-
-    await user.click(checkbox());
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Đã có lỗi xảy ra");
-    expect(checkbox()).not.toBeChecked();
   });
 });

@@ -100,16 +100,28 @@ export function weekdayLabel(day: number): string {
   return day === 0 ? "Chủ nhật" : `Thứ ${day + 1}`;
 }
 
-const scheduleSchema = z
-  .array(z.string().refine((id) => TEMPLATE_BY_ID.has(id)))
+/** 7 template id hợp lệ, index = getDay(). Dùng cả khi đọc DB lẫn validate action lưu lịch. */
+export const weeklyScheduleSchema = z
+  .array(z.string().refine((id) => TEMPLATE_BY_ID.has(id), "Buổi tập không hợp lệ."))
   .length(7);
 
 /** Đọc `users.weekly_schedule` (jsonb). Dữ liệu null/sai định dạng → lịch mặc định. */
 export function parseWeeklySchedule(value: unknown): WeeklySchedule {
-  const parsed = scheduleSchema.safeParse(value);
+  const parsed = weeklyScheduleSchema.safeParse(value);
   return parsed.success ? parsed.data : DEFAULT_WEEKLY_SCHEDULE;
 }
 
 export function templateForDay(schedule: WeeklySchedule, day: number): WorkoutTemplate {
   return TEMPLATE_BY_ID.get(schedule[day]) ?? TEMPLATE_BY_ID.get("rest")!;
+}
+
+/** Đếm số buổi theo loại — hiển thị tóm tắt "4 buổi gym · 1 yoga · 2 nghỉ". */
+export function summarizeSchedule(schedule: WeeklySchedule): Record<TemplateKind, number> {
+  const count: Record<TemplateKind, number> = { gym: 0, yoga: 0, rest: 0 };
+  for (let day = 0; day < 7; day++) count[templateForDay(schedule, day).kind]++;
+  return count;
+}
+
+export function sameSchedule(a: WeeklySchedule, b: WeeklySchedule): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
 }

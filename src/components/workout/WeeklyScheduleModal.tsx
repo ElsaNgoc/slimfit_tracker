@@ -25,6 +25,7 @@ export function WeeklyScheduleModal({
   highlightDay,
   onClose,
   onPick,
+  onEdit,
 }: {
   open: boolean;
   schedule: WeeklySchedule;
@@ -33,6 +34,8 @@ export function WeeklyScheduleModal({
   onClose: () => void;
   /** Bấm "Tập buổi này" ở một ngày gym. */
   onPick: (template: WorkoutTemplate) => void;
+  /** Mở Cài đặt lịch tuần (không truyền → ẩn nút). */
+  onEdit?: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -64,6 +67,15 @@ export function WeeklyScheduleModal({
           <h2 id="weekly-schedule-title" className="text-xl font-bold">
             Lịch tập cả tuần
           </h2>
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="ml-auto min-h-11 rounded-full border border-zinc-700 px-3 text-sm font-medium text-zinc-300 active:bg-zinc-800"
+            >
+              ⚙️ Chỉnh lịch
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}

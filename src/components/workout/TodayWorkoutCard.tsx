@@ -14,6 +14,7 @@ export function TodayWorkoutCard({
   message,
   onStart,
   onOpenWeek,
+  onOpenSettings,
 }: {
   template: WorkoutTemplate;
   weekday: number;
@@ -26,6 +27,7 @@ export function TodayWorkoutCard({
   message: string | null;
   onStart: () => void;
   onOpenWeek: () => void;
+  onOpenSettings: () => void;
 }) {
   const dayText = isToday
     ? `hôm nay (${weekdayLabel(weekday)})`
@@ -36,7 +38,7 @@ export function TodayWorkoutCard({
       aria-labelledby="today-workout-title"
       className="flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-zinc-900 to-zinc-900 p-4 ring-1 ring-emerald-500/30"
     >
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col gap-3">
         <div className="min-w-0">
           <h2 id="today-workout-title" className="text-sm font-medium text-emerald-300">
             Gợi ý bài tập cho {dayText}
@@ -44,13 +46,22 @@ export function TodayWorkoutCard({
           <p className="text-2xl leading-tight font-bold text-zinc-50">{template.name}</p>
           <p className="text-sm text-zinc-400">{template.focus}</p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenWeek}
-          className="min-h-11 shrink-0 rounded-full border border-zinc-700 px-3 text-sm font-medium text-zinc-300 active:bg-zinc-800"
-        >
-          📅 Xem lịch cả tuần
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onOpenWeek}
+            className="min-h-11 rounded-full border border-zinc-700 px-3 text-sm font-medium text-zinc-300 active:bg-zinc-800"
+          >
+            📅 Xem lịch cả tuần
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="min-h-11 rounded-full border border-zinc-700 px-3 text-sm font-medium text-zinc-300 active:bg-zinc-800"
+          >
+            ⚙️ Cài đặt lịch tuần
+          </button>
+        </div>
       </header>
 
       {template.kind !== "rest" && (
@@ -86,10 +97,10 @@ export function TodayWorkoutCard({
 
       {template.kind === "yoga" && (
         <a
-          href="#yoga-library"
+          href="#yoga-videos"
           className="flex h-14 items-center justify-center rounded-xl border-2 border-emerald-500 text-lg font-semibold text-emerald-300 active:bg-emerald-500/10"
         >
-          Xem hướng dẫn giãn cơ ↓
+          Xem video giãn cơ ↓
         </a>
       )}
 
