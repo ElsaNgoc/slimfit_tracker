@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { addNutritionLog, type AddNutritionLogInput, type AddNutritionLogResult } from "@/actions/nutrition-logs";
 import { formatGram, type MealType } from "@/lib/nutrition";
+import { SHEET_DIALOG_CLASS, SHEET_PANEL_CLASS } from "@/components/ui/bottom-sheet";
 import {
   FOOD_GRAM_MAX,
   FOOD_NAME_MAX,
@@ -53,16 +54,20 @@ export function AddFoodModal({
   onAdded: (result: AddNutritionLogResult) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [session, setSession] = useState(0);
   const titleId = `${useId()}-title`;
+  // Mỗi lần mở = form mới, trống. Tăng NGAY khi render (không đợi effect), nếu không khung hình đầu
+  // sau showModal() vẫn là form của lần trước và chữ gõ nhanh vào đó sẽ bị mất khi remount.
+  const [session, setSession] = useState(0);
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setSession((s) => s + 1);
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (open && !dialog.open) {
-      setSession((s) => s + 1); // form mới, trống
-      dialog.showModal();
-    }
+    if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
     document.documentElement.style.overflow = open ? "hidden" : "";
     return () => {
@@ -74,15 +79,16 @@ export function AddFoodModal({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      onClose={onClose}
+      // Sự kiện "close" bắn bất đồng bộ: nếu dialog đã được mở lại (bấm mở ngay sau khi đóng) thì đó là sự kiện cũ → bỏ qua
+      onClose={(e) => !e.currentTarget.open && onClose()}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="group mx-auto mt-auto mb-0 h-auto max-h-[92dvh] w-full max-w-full overflow-visible bg-transparent p-0 text-zinc-100 opacity-0 transition-all transition-discrete duration-300 ease-out backdrop:bg-black/70 backdrop:opacity-0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:opacity-100 open:backdrop:opacity-100 sm:my-auto sm:max-w-md starting:open:opacity-0 starting:open:backdrop:opacity-0"
+      className={SHEET_DIALOG_CLASS}
     >
-      <div className="flex max-h-[92dvh] translate-y-full flex-col gap-4 overflow-y-auto rounded-t-3xl bg-zinc-900 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl ring-1 ring-white/10 transition-transform duration-300 ease-out group-open:translate-y-0 sm:translate-y-8 sm:rounded-3xl sm:group-open:translate-y-0 starting:group-open:translate-y-full sm:starting:group-open:translate-y-8">
+      <div className={SHEET_PANEL_CLASS}>
         <div className="flex items-center justify-between gap-3">
           <h2 id={titleId} className="text-xl font-bold">
             Thêm món · Bữa {meal?.label}

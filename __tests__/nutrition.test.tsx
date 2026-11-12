@@ -365,6 +365,26 @@ describe("NutritionTracker", () => {
     expect(within(dialog).getByRole("combobox")).toHaveValue("");
   });
 
+  it("mở lại: ngay lúc dialog hiện (showModal) đã là form mới (tab Tìm món, ô tìm trống) — không nháy form cũ", async () => {
+    const user = userEvent.setup();
+    render(<NutritionTracker date={DATE} calorieGoal={GOAL} initialEntries={[]} />);
+    const dialog = await openModal(user, "Sáng");
+    await user.click(within(dialog).getByRole("tab", { name: "Tự nhập" }));
+    await user.type(within(dialog).getByLabelText(/^Tên món ăn/), "Xôi");
+    await user.click(within(dialog).getByRole("button", { name: "Đóng" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    const seen: (string | null)[] = [];
+    const original = HTMLDialogElement.prototype.showModal;
+    const spy = vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) {
+      seen.push(this.querySelector('[role="tab"][aria-selected="true"]')?.textContent ?? null);
+      original.call(this);
+    });
+    await user.click(screen.getByRole("button", { name: "Thêm món vào bữa Sáng" }));
+    spy.mockRestore();
+    expect(seen).toEqual(["Tìm món"]);
+  });
+
   it("server trả lỗi → giữ modal mở, hiện lỗi, vòng tròn không đổi", async () => {
     add.mockResolvedValue({ ok: false, error: "Bạn cần đăng nhập." });
     const user = userEvent.setup();

@@ -82,7 +82,8 @@ export function ExerciseInfoModal({
     <dialog
       ref={dialogRef}
       aria-labelledby="exercise-info-title"
-      onClose={onClose}
+      // Sự kiện "close" bắn bất đồng bộ: nếu dialog đã được mở lại (bấm mở ngay sau khi đóng) thì đó là sự kiện cũ → bỏ qua
+      onClose={(e) => !e.currentTarget.open && onClose()}
       onCancel={(e) => {
         e.preventDefault(); // để parent điều khiển `open`
         onClose();

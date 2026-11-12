@@ -54,7 +54,8 @@ export function WeeklyScheduleModal({
     <dialog
       ref={dialogRef}
       aria-labelledby="weekly-schedule-title"
-      onClose={onClose}
+      // Sự kiện "close" bắn bất đồng bộ: nếu dialog đã được mở lại (bấm mở ngay sau khi đóng) thì đó là sự kiện cũ → bỏ qua
+      onClose={(e) => !e.currentTarget.open && onClose()}
       onCancel={(e) => {
         e.preventDefault();
         onClose();

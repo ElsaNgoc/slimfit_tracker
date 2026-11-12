@@ -278,7 +278,8 @@ function YogaVideoModal({ video, onClose }: { video: VideoCardData | null; onClo
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      onClose={onClose}
+      // Sự kiện "close" bắn bất đồng bộ: nếu dialog đã được mở lại (bấm mở ngay sau khi đóng) thì đó là sự kiện cũ → bỏ qua
+      onClose={(e) => !e.currentTarget.open && onClose()}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
