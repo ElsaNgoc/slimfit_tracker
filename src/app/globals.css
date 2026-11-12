@@ -7,6 +7,14 @@
   --background: #09090b; /* zinc-950 */
   --foreground: #f4f4f5; /* zinc-100 */
   color-scheme: dark;
+  /* Chiều cao thanh tab đáy (BottomNav, chỉ có trên mobile) — dùng để chừa chỗ cho nội dung / thanh cố định. */
+  --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
+}
+
+@media (width >= 48rem) {
+  :root {
+    --bottom-nav-h: 0px;
+  }
 }
 
 @theme inline {

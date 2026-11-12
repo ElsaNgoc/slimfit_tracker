@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Navbar } from "@/components/navbar";
+import { BottomNav, Navbar } from "@/components/navbar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +35,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
           <Navbar />
-          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
+          {/* pb: chừa chỗ cho thanh tab đáy màn hình trên mobile (--bottom-nav-h = 0 từ md) */}
+          <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-h)+1rem)]">
+            {children}
+          </main>
+          <BottomNav />
         </ClerkProvider>
       </body>
     </html>

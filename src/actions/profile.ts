@@ -54,7 +54,7 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ActionRe
       .where(eq(users.id, userId))
       .returning();
 
-    refresh(); // render lại Dashboard với TDEE mới
+    refresh(); // render lại trang Hồ sơ với TDEE mới
     return { ok: true, data: user };
   } catch (err) {
     return toActionError(err);
