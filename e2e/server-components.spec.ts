@@ -1,5 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { DB_BRANCH, NEED_BRANCH_MSG } from "./helpers/constants";
+import { branchSql } from "./helpers/db";
 
 /**
  * Async Server Components (đọc auth + DB trong <Suspense>) — Vitest không render được,
@@ -15,15 +16,55 @@ test("Dashboard `/` render dữ liệu người dùng đã đăng nhập", async
   // Ngày hiển thị theo giờ VN, vd "thứ tư, 11/11"
   await expect(page.locator("header p").first()).toHaveText(/\d{1,2}\/\d{1,2}/);
 
-  // Các thẻ client nhận props từ server
-  await expect(page.getByLabel("Tổng lượng Calo nạp vào hôm nay")).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /Đã tập Yoga giãn cơ/ })).toBeAttached();
-  await expect(page.getByRole("heading", { level: 2, name: "Hồ sơ cơ thể" })).toBeVisible();
+  // Dinh dưỡng: 4 vòng macro + 4 thẻ bữa ăn; còn lại là widget khung
+  for (const title of ["Dinh dưỡng hôm nay", "Bữa ăn hôm nay", "Gợi ý bài tập hôm nay", "Thói quen hôm nay", "Biểu đồ cân nặng"]) {
+    await expect(page.getByRole("region", { name: title })).toBeVisible();
+  }
+  for (const ring of ["Calories", "Protein", "Carbs", "Fat"]) {
+    await expect(page.getByRole("progressbar", { name: ring })).toBeVisible();
+  }
+  for (const meal of ["Sáng", "Trưa", "Tối", "Phụ"]) {
+    await expect(page.getByRole("button", { name: `Thêm món vào bữa ${meal}` })).toBeVisible();
+  }
+  // Ô nhập "Tổng lượng Calo" cũ đã bị bỏ
+  await expect(page.getByText("Tổng lượng Calo nạp vào hôm nay")).toHaveCount(0);
+  // Hồ sơ đã tách sang /profile
+  await expect(page.getByRole("heading", { name: "Hồ sơ cơ thể" })).toHaveCount(0);
   // Không còn landing của khách
   await expect(page.getByRole("button", { name: "Bắt đầu miễn phí" })).toHaveCount(0);
 });
 
-test("`/workouts` render danh sách bài gym + thư viện yoga từ DB", async ({ page }) => {
+test("`/profile` render TDEE + form hồ sơ từ DB", async ({ page }) => {
+  const res = await page.goto("/profile");
+  expect(res?.status()).toBe(200);
+  await expect(page).toHaveURL(/\/profile$/);
+
+  await expect(page.getByRole("heading", { level: 1, name: "Hồ sơ" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Hồ sơ cơ thể" })).toBeVisible();
+});
+
+test("thanh tab đáy (mobile) điều hướng giữa 3 tab và đánh dấu tab đang mở", async ({ page }) => {
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Điều hướng chính" }).filter({ visible: true });
+  await expect(nav).toHaveCount(1);
+  await expect(nav.getByRole("link", { name: "Tổng quan" })).toHaveAttribute("aria-current", "page");
+
+  await nav.getByRole("link", { name: "Tập luyện" }).click();
+  await expect(page).toHaveURL(/\/workouts$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Ghi chép tập luyện" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Tập luyện" })).toHaveAttribute("aria-current", "page");
+
+  // Thanh Save Workout nằm trên thanh tab, không bị che
+  const navBox = await nav.boundingBox();
+  const saveBox = await page.getByRole("button", { name: /^(Save Workout|Cập nhật)/ }).boundingBox();
+  expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
+
+  await nav.getByRole("link", { name: "Hồ sơ" }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Hồ sơ cơ thể" })).toBeVisible();
+});
+
+test("`/workouts` render danh sách bài gym từ DB + thư viện video giãn cơ", async ({ page }) => {
   const res = await page.goto("/workouts");
   expect(res?.status()).toBe(200);
   await expect(page).toHaveURL(/\/workouts$/); // không bị redirect sang sign-in
@@ -39,8 +80,52 @@ test("`/workouts` render danh sách bài gym + thư viện yoga từ DB", async 
   // Ngày mặc định = hôm nay theo giờ VN (server tính)
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
   await expect(page.getByLabel("Ngày tập")).toHaveValue(today);
+
+  // Thư viện video thay cho lưới ảnh tĩnh yoga cũ
+  const library = page.getByRole("region", { name: "Yoga & Giãn cơ" });
+  await expect(library.getByRole("button", { name: /^Xem video:/ })).toHaveCount(5);
+  await expect(page.getByText("Chạm vào tư thế để xem hướng dẫn chuẩn form.")).toHaveCount(0);
 });
 
+test("Video giãn cơ: bấm card → modal phát YouTube embed; Esc đóng và gỡ iframe", async ({ page }) => {
+  await page.goto("/workouts#yoga-videos");
+  const library = page.getByRole("region", { name: "Yoga & Giãn cơ" });
+  await expect(library).toBeInViewport();
+
+  const card = library.getByRole("button", { name: /^Xem video: Yoga for Neck and Shoulder Relief/ });
+  // Thumbnail tải được thật từ YouTube
+  const thumb = card.locator("img");
+  await expect(thumb).toHaveAttribute("src", "https://i.ytimg.com/vi/SedzswEwpPw/mqdefault.jpg");
+  await expect.poll(() => thumb.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+
+  await card.click();
+  const dialog = page.getByRole("dialog", { name: "Yoga for Neck and Shoulder Relief" });
+  await expect(dialog).toBeVisible();
+  const iframe = dialog.locator("iframe");
+  await expect(iframe).toHaveAttribute("src", /^https:\/\/www\.youtube-nocookie\.com\/embed\/SedzswEwpPw\?/);
+  // Khung 16:9 vừa màn hình điện thoại
+  const box = (await iframe.boundingBox())!;
+  expect(box.width / box.height).toBeCloseTo(16 / 9, 1);
+  expect(box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("iframe")).toHaveCount(0);
+});
+
+// Thứ của hôm nay theo giờ VN (0 = CN), giống weekdayOf(todayInAppTz()) trong app.
+const todayIndex = () =>
+  new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date()) + "T00:00:00Z").getUTCDay();
+const dayLabel = (day: number) => (day === 0 ? "Chủ nhật" : `Thứ ${day + 1}`);
+const DEFAULT_SCHEDULE = ["rest", "lower-1", "upper-a", "active-rest", "lower-2", "upper-b", "rest"];
+
+async function currentUserId(page: Page): Promise<string> {
+  await page.waitForFunction(() => window.Clerk?.user?.id);
+  return page.evaluate(() => window.Clerk.user!.id);
+}
+
+// Các test dưới cùng đọc / ghi users.weekly_schedule của user E2E → chạy tuần tự, test đổi lịch chạy sau cùng.
+test.describe.serial("Lịch tuần (users.weekly_schedule)", () => {
 test("Gợi ý hôm nay theo thứ (giờ VN) + lịch tuần + Swap bài tập", async ({ page }) => {
   await page.goto("/workouts");
 
@@ -74,6 +159,71 @@ test("Gợi ý hôm nay theo thứ (giờ VN) + lịch tuần + Swap bài tập"
   await expect(cards.first()).toHaveAccessibleName("Xem hướng dẫn Glute Bridge");
   await expect(page.getByRole("button", { name: "Xem hướng dẫn Hip Thrust" })).toHaveCount(0);
   await expect(page.getByText("Đã thay Hip Thrust bằng Glute Bridge.")).toBeVisible();
+});
+
+test("Cài đặt lịch tuần → lưu DB → Tổng quan tự gợi ý theo lịch → 'Bắt đầu tập' nạp sẵn bài", async ({ page }) => {
+  await page.goto("/workouts");
+  const userId = await currentUserId(page);
+  const day = todayIndex();
+  const label = dayLabel(day);
+  // Chọn 1 buổi gym khác lịch mặc định của hôm nay để chắc chắn thấy thay đổi
+  const target = DEFAULT_SCHEDULE[day] === "lower-1" ? { id: "upper-a", name: "Upper Body A", first: "Lat Pulldown" } : { id: "lower-1", name: "Lower Body 1", first: "Hip Thrust" };
+
+  try {
+    // 1) Tab Tập luyện → Cài đặt lịch tuần → đổi hôm nay → Lưu
+    await page.getByRole("button", { name: "⚙️ Cài đặt lịch tuần" }).click();
+    const settings = page.getByRole("dialog", { name: "Cài đặt lịch tuần" });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByRole("combobox")).toHaveCount(7);
+    await expect(settings.getByRole("button", { name: "Chưa có thay đổi" })).toBeDisabled();
+    await settings.getByLabel(label, { exact: true }).selectOption(target.id);
+    await expect(settings.getByText("Đã đổi")).toHaveCount(1);
+    await settings.getByRole("button", { name: "Lưu lịch tuần" }).click();
+    await expect(settings).toBeHidden();
+    await expect(page.getByText("Đã lưu lịch tuần.")).toBeVisible();
+
+    const card = page.getByRole("region", { name: `Gợi ý bài tập cho hôm nay (${label})` });
+    await expect(card.getByText(target.name, { exact: true })).toBeVisible();
+
+    const expected = [...DEFAULT_SCHEDULE];
+    expected[day] = target.id;
+    const [row] = await branchSql()`SELECT weekly_schedule FROM users WHERE id = ${userId}`;
+    expect(row.weekly_schedule).toEqual(expected);
+
+    // 2) Tổng quan đọc lịch mới
+    await page.goto("/");
+    const widget = page.getByRole("region", { name: "Gợi ý bài tập hôm nay" });
+    await expect(widget.getByText(label, { exact: true })).toBeVisible();
+    await expect(widget.getByTestId("today-template")).toHaveText(target.name);
+    await expect(widget.getByText(target.first)).toBeVisible();
+
+    // 3) "Bắt đầu tập" → /workouts đã nạp sẵn đủ bài, URL sạch query
+    await widget.getByRole("link", { name: "Bắt đầu tập" }).click();
+    await expect(page).toHaveURL(/\/workouts$/);
+    await expect(page.getByRole("button", { name: /^Xem hướng dẫn / })).toHaveCount(5);
+    await expect(page.getByRole("button", { name: `Xem hướng dẫn ${target.first}` })).toBeVisible();
+    await expect(page.getByRole("button", { name: "✓ Đã thêm vào buổi tập" })).toBeDisabled();
+    await page.reload();
+    await expect(page.getByRole("button", { name: /^Xem hướng dẫn / })).toHaveCount(0); // reload không nạp lại
+
+    // 4) "Đổi lịch" ở Tổng quan → mở thẳng Cài đặt; đặt hôm nay là ngày nghỉ
+    await page.goto("/");
+    await page.getByRole("link", { name: /Đổi lịch/ }).click();
+    const settings2 = page.getByRole("dialog", { name: "Cài đặt lịch tuần" });
+    await expect(settings2).toBeVisible();
+    await expect(settings2.getByLabel(label, { exact: true })).toHaveValue(target.id);
+    await settings2.getByLabel(label, { exact: true }).selectOption("rest");
+    await settings2.getByRole("button", { name: "Lưu lịch tuần" }).click();
+    await expect(settings2).toBeHidden();
+
+    await page.goto("/");
+    await expect(widget.getByTestId("today-template")).toHaveText("Nghỉ ngơi");
+    await expect(widget.getByText(/Hôm nay là ngày nghỉ/)).toBeVisible();
+    await expect(widget.getByRole("link", { name: "Bắt đầu tập" })).toHaveCount(0);
+  } finally {
+    await branchSql()`UPDATE users SET weekly_schedule = NULL WHERE id = ${userId}`;
+  }
+});
 });
 
 for (const { name, src, credit } of [

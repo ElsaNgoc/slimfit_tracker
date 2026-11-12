@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -24,6 +24,8 @@ export const activityLevelEnum = pgEnum("activity_level", [
   "active",
   "very_active",
 ]);
+// Bữa ăn: Sáng / Trưa / Tối / Phụ — nhãn + tỉ lệ chia calo xem src/lib/nutrition.ts
+export const mealTypeEnum = pgEnum("meal_type", ["breakfast", "lunch", "dinner", "snack"]);
 
 // ---------- Tables ----------
 
@@ -121,11 +123,123 @@ export const dailyLogs = pgTable(
   (t) => [uniqueIndex("daily_logs_user_date_uq").on(t.userId, t.date)],
 );
 
+/**
+ * Nhật ký dinh dưỡng: mỗi lần bấm "+" ở 1 bữa = 1 dòng (1 user có nhiều dòng / bữa / ngày).
+ * calories luôn có giá trị (nhập trực tiếp hoặc quy đổi từ macro: P/C 4 kcal/g, F 9 kcal/g);
+ * macro mặc định 0 khi chỉ nhập tổng calo.
+ */
+export const nutritionLogs = pgTable(
+  "nutrition_logs",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    mealType: mealTypeEnum("meal_type").notNull(),
+    // Tên món (từ từ điển hoặc tự gõ). Default '' chỉ để điền cho bản ghi cũ trước khi có cột này.
+    foodName: text("food_name").notNull().default(""),
+    // Khối lượng đã ăn (gram). null = nhập thủ công không ghi khối lượng.
+    weightG: real("weight_g"),
+    calories: integer("calories").notNull(),
+    proteinG: real("protein_g").notNull().default(0),
+    carbsG: real("carbs_g").notNull().default(0),
+    fatG: real("fat_g").notNull().default(0),
+    fiberG: real("fiber_g").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("nutrition_logs_user_date_idx").on(t.userId, t.date)],
+);
+
+/**
+ * Từ điển món ăn riêng của user ("Lưu món này vào từ điển của tôi"). Mọi chỉ số tính trên 100 g.
+ * Tìm kiếm gộp với từ điển tĩnh src/lib/vietnameseFoods.ts.
+ * name_key = tên chữ thường, giữ dấu (xem foodNameKey) → lưu lại cùng tên thì cập nhật số liệu thay vì tạo bản trùng.
+ */
+export const customFoods = pgTable(
+  "custom_foods",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    calories: integer("calories").notNull(),
+    proteinG: real("protein").notNull().default(0),
+    carbsG: real("carbs").notNull().default(0),
+    fatG: real("fat").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("custom_foods_user_name_uq").on(t.userId, t.nameKey)],
+);
+
+/** Thói quen do user tự tạo (Skin care, Đắp mặt nạ…). Tên không trùng (không phân biệt hoa thường) trong cùng user. */
+export const habits = pgTable(
+  "habits",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("habits_user_name_uq").on(t.userId, sql`lower(${t.name})`)],
+);
+
+/**
+ * Trạng thái check của 1 thói quen trong 1 ngày. Không có dòng cho ngày D = chưa check
+ * → sang ngày mới mọi checkbox tự về trạng thái chưa hoàn thành, lịch sử các ngày cũ vẫn giữ.
+ */
+export const habitLogs = pgTable(
+  "habit_logs",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    habitId: integer("habit_id")
+      .notNull()
+      .references(() => habits.id, { onDelete: "cascade" }),
+    // Lặp lại user_id để mọi query lọc thẳng theo user (không cần join habits)
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    completed: boolean("completed").notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex("habit_logs_habit_date_uq").on(t.habitId, t.date),
+    index("habit_logs_user_date_idx").on(t.userId, t.date),
+  ],
+);
+
+/**
+ * Video YouTube giãn cơ / yoga user tự lưu (dán link). Chỉ lưu ID + tiêu đề / kênh lấy từ YouTube oEmbed lúc lưu;
+ * thumbnail và link nhúng suy ra từ ID (xem src/lib/yoga-videos.ts). Mỗi video chỉ lưu 1 lần / user.
+ */
+export const favoriteVideos = pgTable(
+  "favorite_videos",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    youtubeId: text("youtube_id").notNull(),
+    title: text("title").notNull(),
+    channel: text("channel"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("favorite_videos_user_video_uq").on(t.userId, t.youtubeId)],
+);
+
 // ---------- Relations (cho db.query.* API) ----------
 
 export const usersRelations = relations(users, ({ many }) => ({
   workoutLogs: many(workoutLogs),
   dailyLogs: many(dailyLogs),
+  nutritionLogs: many(nutritionLogs),
+  customFoods: many(customFoods),
+  habits: many(habits),
+  favoriteVideos: many(favoriteVideos),
 }));
 
 export const exercisesRelations = relations(exercises, ({ many }) => ({
@@ -146,6 +260,27 @@ export const dailyLogsRelations = relations(dailyLogs, ({ one }) => ({
   user: one(users, { fields: [dailyLogs.userId], references: [users.id] }),
 }));
 
+export const nutritionLogsRelations = relations(nutritionLogs, ({ one }) => ({
+  user: one(users, { fields: [nutritionLogs.userId], references: [users.id] }),
+}));
+
+export const customFoodsRelations = relations(customFoods, ({ one }) => ({
+  user: one(users, { fields: [customFoods.userId], references: [users.id] }),
+}));
+
+export const habitsRelations = relations(habits, ({ one, many }) => ({
+  user: one(users, { fields: [habits.userId], references: [users.id] }),
+  logs: many(habitLogs),
+}));
+
+export const habitLogsRelations = relations(habitLogs, ({ one }) => ({
+  habit: one(habits, { fields: [habitLogs.habitId], references: [habits.id] }),
+}));
+
+export const favoriteVideosRelations = relations(favoriteVideos, ({ one }) => ({
+  user: one(users, { fields: [favoriteVideos.userId], references: [users.id] }),
+}));
+
 // ---------- Inferred types ----------
 
 export type User = typeof users.$inferSelect;
@@ -158,3 +293,9 @@ export type WorkoutSet = typeof workoutSets.$inferSelect;
 export type NewWorkoutSet = typeof workoutSets.$inferInsert;
 export type DailyLog = typeof dailyLogs.$inferSelect;
 export type NewDailyLog = typeof dailyLogs.$inferInsert;
+export type NutritionLog = typeof nutritionLogs.$inferSelect;
+export type NewNutritionLog = typeof nutritionLogs.$inferInsert;
+export type CustomFood = typeof customFoods.$inferSelect;
+export type Habit = typeof habits.$inferSelect;
+export type HabitLog = typeof habitLogs.$inferSelect;
+export type FavoriteVideo = typeof favoriteVideos.$inferSelect;
