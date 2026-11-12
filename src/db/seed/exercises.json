@@ -1,5 +1,5 @@
 {
-  "$comment": "Seed bảng exercises. Ảnh gym từ wger.de (API /api/v2/exerciseimage), ảnh yoga từ Wikimedia Commons; license ghi trong imageCredit. instruction: mỗi dòng 1 bước, dòng bắt đầu 'Lưu ý:' hiển thị dạng mẹo. recommendedWeight/tips: mức tạ khởi điểm gợi ý cho nữ mới tập (BMI ~25–28), hiển thị trên thẻ bài tập.",
+  "$comment": "Seed bảng exercises. Ảnh gym từ wger.de (API /api/v2/exerciseimage), ảnh yoga từ Wikimedia Commons; license ghi trong imageCredit. instruction: mỗi dòng 1 bước, dòng bắt đầu 'Lưu ý:' hiển thị dạng mẹo. recommendedWeight/tips: mức tạ khởi điểm gợi ý cho nữ mới tập (BMI ~25–28), hiển thị trên thẻ bài tập. phase: \"finisher\" = bài Đốt Mỡ Cuối Buổi (mặc định \"main\" = Bài Tập Chính).",
   "exercises": [
     {
       "name": "Romanian Deadlift (RDL)",
@@ -39,7 +39,8 @@
       "imageCredit": "wger.de · CC BY-SA 4.0",
       "instruction": "Nằm ngửa, gập gối, bàn chân đặt sàn rộng bằng hông, tay xuôi hai bên.\nSiết bụng, đẩy gót chân nâng hông lên đến khi vai–hông–gối thẳng hàng.\nGiữ 1–2 giây, siết mông, rồi hạ chậm.\nLưu ý: Có thể đặt tạ lên hông để tăng độ khó.",
       "recommendedWeight": null,
-      "tips": null
+      "tips": null,
+      "phase": "finisher"
     },
     {
       "name": "Goblet Squat",
@@ -149,7 +150,8 @@
       "imageCredit": "utkb · wger.de · CC BY-SA 4.0",
       "instruction": "Chống cẳng tay xuống sàn, khuỷu tay ngay dưới vai.\nDuỗi thẳng chân, nâng người để đầu–hông–gót thành một đường thẳng.\nGồng bụng, siết mông, thở đều và giữ theo thời gian.\nLưu ý: Ghi số giây vào ô 'Số rep'. Không để hông võng hoặc chổng cao.",
       "recommendedWeight": null,
-      "tips": null
+      "tips": null,
+      "phase": "finisher"
     },
     {
       "name": "Push-up",
@@ -440,6 +442,72 @@
       "instruction": "Nằm ngửa, chụm hai lòng bàn chân lại, để gối mở sang hai bên.\nĐặt tay lên bụng hoặc thả lỏng hai bên.\nThả lỏng hông, thở chậm và sâu 2–5 phút.\nLưu ý: Kê gối dưới mỗi đùi nếu thấy căng đùi trong.",
       "recommendedWeight": null,
       "tips": null
+    },
+    {
+      "name": "Kettlebell Swing",
+      "category": "gym",
+      "muscleGroup": "Mông, Đùi sau, Core (tim mạch)",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Đứng chân rộng hơn vai, tạ ấm đặt trước mặt khoảng 30 cm.\nGập hông (không ngồi xổm), hai tay cầm quai tạ, lưng thẳng.\nKéo tạ lùi giữa hai chân như chuyền bóng bầu dục.\nSiết mông, bật hông về trước thật mạnh để tạ vung lên ngang ngực — lực đến từ hông, không phải tay.\nĐể tạ rơi về, gập hông đón tạ và lặp lại liên tục.\nLưu ý: Giữ lưng thẳng suốt động tác; tay chỉ dẫn hướng, không nâng tạ bằng vai.",
+      "recommendedWeight": "Tạ ấm 6–8 kg",
+      "tips": "Bật hông dứt khoát, thở ra khi tạ lên ngang ngực",
+      "phase": "finisher"
+    },
+    {
+      "name": "Crunch",
+      "category": "gym",
+      "muscleGroup": "Core (bụng trên)",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Nằm ngửa, gối co, bàn chân đặt sàn rộng bằng hông.\nĐặt hai tay chéo trước ngực hoặc chạm nhẹ sau tai (không kéo cổ).\nThở ra, cuộn vai và lưng trên khỏi sàn bằng lực bụng.\nGiữ 1 giây ở điểm cao, hít vào và hạ chậm xuống.\nLưu ý: Lưng dưới luôn áp sàn; mắt nhìn chéo lên trần để không gập cổ.",
+      "recommendedWeight": null,
+      "tips": "Cuộn người chậm, không giật lên bằng cổ",
+      "phase": "finisher"
+    },
+    {
+      "name": "Mountain Climber",
+      "category": "gym",
+      "muscleGroup": "Core, Vai, Toàn thân (tim mạch)",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Vào tư thế chống đẩy cao: tay thẳng dưới vai, người thành một đường thẳng.\nKéo gối phải về phía ngực, rồi đưa chân về chỗ cũ.\nĐổi chân liên tục với nhịp nhanh như đang chạy tại chỗ.\nLưu ý: Giữ hông ngang vai, không nhô mông lên cao; siết bụng suốt thời gian tập.",
+      "recommendedWeight": null,
+      "tips": "Nhanh nhưng giữ hông thấp, thở đều",
+      "phase": "finisher"
+    },
+    {
+      "name": "Jumping Jack",
+      "category": "gym",
+      "muscleGroup": "Toàn thân (tim mạch), Bắp chân",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Đứng thẳng, hai chân khép, tay xuôi theo người.\nBật nhảy dang chân rộng hơn vai, đồng thời vung hai tay qua đầu.\nBật nhảy về tư thế ban đầu.\nLặp lại liên tục theo nhịp đều.\nLưu ý: Tiếp đất nhẹ bằng mũi chân, gối hơi chùng; đau gối thì bước sang ngang thay vì bật nhảy.",
+      "recommendedWeight": null,
+      "tips": "Tiếp đất nhẹ, giữ nhịp đều",
+      "phase": "finisher"
+    },
+    {
+      "name": "Russian Twist",
+      "category": "gym",
+      "muscleGroup": "Core (bụng chéo – liên sườn)",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Ngồi trên thảm, gối co, gót chân chạm sàn (hoặc nhấc lên nếu muốn khó hơn).\nNgả người ra sau khoảng 45°, lưng thẳng, hai tay chắp trước ngực.\nXoay thân sang phải đưa tay chạm sàn cạnh hông, rồi xoay sang trái.\nMỗi lần chạm một bên tính là 1 lần.\nLưu ý: Xoay từ thân trên, không chỉ vung tay; giữ lưng thẳng, không gù.",
+      "recommendedWeight": null,
+      "tips": "Xoay bằng bụng, lưng thẳng",
+      "phase": "finisher"
+    },
+    {
+      "name": "Dead Bug",
+      "category": "gym",
+      "muscleGroup": "Core (core sâu), Lưng dưới",
+      "gifUrl": null,
+      "imageCredit": null,
+      "instruction": "Nằm ngửa, hai tay duỗi thẳng lên trần, gối co 90° nhấc khỏi sàn.\nÉp lưng dưới xuống thảm, siết bụng.\nĐồng thời duỗi tay phải ra sau đầu và chân trái ra trước, sát sàn nhưng không chạm.\nThu về vị trí ban đầu, đổi bên.\nLưu ý: Lưng dưới không được cong khỏi thảm; làm chậm, thở ra khi duỗi.",
+      "recommendedWeight": null,
+      "tips": "Chậm và kiểm soát, lưng dưới áp sàn",
+      "phase": "finisher"
     }
   ]
 }

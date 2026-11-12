@@ -22,6 +22,7 @@ const seedSchema = z.object({
         imageCredit: z.string().nullable(),
         recommendedWeight: z.string().nullable().default(null),
         tips: z.string().nullable().default(null),
+        phase: z.enum(["main", "finisher"]).default("main"),
       }),
     )
     .min(1),
@@ -49,6 +50,7 @@ async function main() {
         imageCredit: sql`excluded.image_credit`,
         recommendedWeight: sql`excluded.recommended_weight`,
         tips: sql`excluded.tips`,
+        phase: sql`excluded.phase`,
       },
     })
     .returning({ id: exercises.id, name: exercises.name, category: exercises.category });

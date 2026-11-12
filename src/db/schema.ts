@@ -16,6 +16,11 @@ import {
 // ---------- Enums ----------
 
 export const exerciseCategoryEnum = pgEnum("exercise_category", ["gym", "yoga"]);
+/**
+ * Giai đoạn trong buổi tập: "main" = Bài Tập Chính (tạ nặng, nghỉ lâu, nhập kg × rep),
+ * "finisher" = Đốt Mỡ Cuối Buổi (chuỗi thảm / thể lực 10–15 phút, chỉ tick hoàn thành hoặc ghi thời gian).
+ */
+export const workoutPhaseEnum = pgEnum("workout_phase", ["main", "finisher"]);
 export const sexEnum = pgEnum("sex", ["male", "female"]);
 export const activityLevelEnum = pgEnum("activity_level", [
   "sedentary",
@@ -65,6 +70,8 @@ export const exercises = pgTable(
     recommendedWeight: text("recommended_weight"),
     // Mẹo ngắn hiển thị ngay trên form nhập set
     tips: text("tips"),
+    // Giai đoạn mặc định khi thêm bài thủ công (template quy định giai đoạn riêng — src/lib/workout-templates.ts)
+    phase: workoutPhaseEnum("phase").notNull().default("main"),
   },
   (t) => [
     index("exercises_category_idx").on(t.category),
@@ -96,10 +103,15 @@ export const workoutSets = pgTable(
     exerciseId: integer("exercise_id")
       .notNull()
       .references(() => exercises.id, { onDelete: "restrict" }),
-    reps: integer("reps").notNull(),
+    phase: workoutPhaseEnum("phase").notNull().default("main"),
+    // Bài Tập Chính: số rep (bắt buộc ở tầng action). Đốt mỡ: null (chỉ cần hoàn thành / thời gian)
+    reps: integer("reps"),
     // kg; null = bài tập trọng lượng cơ thể
     weight: real("weight"),
     setNumber: integer("set_number").notNull(),
+    // Đốt mỡ: thời gian đã làm (giây, tuỳ chọn) + đã hoàn thành chưa
+    durationSec: integer("duration_sec"),
+    completed: boolean("completed").notNull().default(false),
   },
   (t) => [
     index("workout_sets_log_idx").on(t.workoutLogId),
@@ -174,6 +186,24 @@ export const customFoods = pgTable(
   (t) => [uniqueIndex("custom_foods_user_name_uq").on(t.userId, t.nameKey)],
 );
 
+/**
+ * Lịch sử cân nặng (biểu đồ ở tab Hồ sơ). Mỗi user tối đa 1 dòng / ngày — nhập lại cùng ngày là cập nhật.
+ * Dòng có ngày mới nhất đồng bộ ngược vào users.weight (và BMR / TDEE).
+ */
+export const weightLogs = pgTable(
+  "weight_logs",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date("date", { mode: "string" }).notNull(),
+    weightKg: real("weight_kg").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("weight_logs_user_date_uq").on(t.userId, t.date)],
+);
+
 /** Thói quen do user tự tạo (Skin care, Đắp mặt nạ…). Tên không trùng (không phân biệt hoa thường) trong cùng user. */
 export const habits = pgTable(
   "habits",
@@ -238,6 +268,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   dailyLogs: many(dailyLogs),
   nutritionLogs: many(nutritionLogs),
   customFoods: many(customFoods),
+  weightLogs: many(weightLogs),
   habits: many(habits),
   favoriteVideos: many(favoriteVideos),
 }));
@@ -268,6 +299,10 @@ export const customFoodsRelations = relations(customFoods, ({ one }) => ({
   user: one(users, { fields: [customFoods.userId], references: [users.id] }),
 }));
 
+export const weightLogsRelations = relations(weightLogs, ({ one }) => ({
+  user: one(users, { fields: [weightLogs.userId], references: [users.id] }),
+}));
+
 export const habitsRelations = relations(habits, ({ one, many }) => ({
   user: one(users, { fields: [habits.userId], references: [users.id] }),
   logs: many(habitLogs),
@@ -296,6 +331,7 @@ export type NewDailyLog = typeof dailyLogs.$inferInsert;
 export type NutritionLog = typeof nutritionLogs.$inferSelect;
 export type NewNutritionLog = typeof nutritionLogs.$inferInsert;
 export type CustomFood = typeof customFoods.$inferSelect;
+export type WeightLog = typeof weightLogs.$inferSelect;
 export type Habit = typeof habits.$inferSelect;
 export type HabitLog = typeof habitLogs.$inferSelect;
 export type FavoriteVideo = typeof favoriteVideos.$inferSelect;

@@ -15,6 +15,8 @@ export type ExerciseDetail = {
   recommendedWeight?: string | null;
   /** Mẹo ngắn hiển thị trên thẻ bài tập. */
   tips?: string | null;
+  /** Giai đoạn mặc định khi thêm thủ công: Bài Tập Chính / Đốt Mỡ Cuối Buổi. */
+  phase?: "main" | "finisher";
 };
 
 const SWIPE_CLOSE_PX = 90;
@@ -90,11 +92,11 @@ export function ExerciseInfoModal({
       }}
       // Chạm vào nền tối (chính phần tử dialog, ngoài sheet) để đóng
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="group mx-auto mt-auto mb-0 h-auto max-h-[92dvh] w-full max-w-full overflow-visible bg-transparent p-0 text-zinc-100 opacity-0 transition-all transition-discrete duration-300 ease-out backdrop:bg-black/70 backdrop:opacity-0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:opacity-100 open:backdrop:opacity-100 sm:my-auto sm:max-w-lg starting:open:opacity-0 starting:open:backdrop:opacity-0"
+      className="group mx-auto mt-auto mb-0 h-auto max-h-[92dvh] w-full max-w-full overflow-visible bg-transparent p-0 text-foreground opacity-0 transition-all transition-discrete duration-300 ease-out backdrop:bg-black/70 backdrop:opacity-0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:opacity-100 open:backdrop:opacity-100 sm:my-auto sm:max-w-lg starting:open:opacity-0 starting:open:backdrop:opacity-0"
     >
       <div
         ref={sheetRef}
-        className="flex max-h-[92dvh] translate-y-full flex-col overflow-hidden rounded-t-3xl bg-zinc-900 shadow-2xl ring-1 ring-white/10 transition-transform duration-300 ease-out group-open:translate-y-0 sm:translate-y-8 sm:rounded-3xl sm:group-open:translate-y-0 starting:group-open:translate-y-full sm:starting:group-open:translate-y-8"
+        className="flex max-h-[92dvh] translate-y-full flex-col overflow-hidden rounded-t-3xl bg-card shadow-2xl ring-1 ring-foreground/10 transition-transform duration-300 ease-out group-open:translate-y-0 sm:translate-y-8 sm:rounded-3xl sm:group-open:translate-y-0 starting:group-open:translate-y-full sm:starting:group-open:translate-y-8"
       >
         {/* Tay nắm + tiêu đề: vùng vuốt để đóng */}
         <div
@@ -103,10 +105,10 @@ export function ExerciseInfoModal({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-zinc-700 sm:hidden" aria-hidden />
+          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-foreground/30 sm:hidden" aria-hidden />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 pt-1">
-              <span className="text-xs font-semibold tracking-wide text-emerald-400 uppercase">
+              <span className="text-xs font-semibold tracking-wide text-link uppercase">
                 {exercise?.category === "yoga" ? "Yoga" : "Gym"}
               </span>
               <h2 id="exercise-info-title" className="text-xl leading-tight font-bold">
@@ -117,7 +119,7 @@ export function ExerciseInfoModal({
               type="button"
               onClick={onClose}
               aria-label="Đóng"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-300 active:bg-zinc-700"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-2xl text-foreground/85 active:bg-muted/70"
             >
               ×
             </button>
@@ -137,12 +139,12 @@ export function ExerciseInfoModal({
 
           {muscles.length > 0 && (
             <section>
-              <h3 className="mb-2 text-sm font-semibold text-zinc-400">Nhóm cơ tác động</h3>
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Nhóm cơ tác động</h3>
               <ul className="flex flex-wrap gap-2">
                 {muscles.map((m) => (
                   <li
                     key={m}
-                    className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300"
+                    className="rounded-full bg-primary/15 px-3 py-1.5 text-sm font-medium text-link"
                   >
                     {m}
                   </li>
@@ -153,11 +155,11 @@ export function ExerciseInfoModal({
 
           {mainSteps.length > 0 ? (
             <section>
-              <h3 className="mb-2 text-sm font-semibold text-zinc-400">Cách thực hiện</h3>
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Cách thực hiện</h3>
               <ol className="flex flex-col gap-3">
                 {mainSteps.map((step, i) => (
-                  <li key={i} className="flex gap-3 text-base leading-relaxed text-zinc-200">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold text-zinc-300">
+                  <li key={i} className="flex gap-3 text-base leading-relaxed text-foreground">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground/85">
                       {i + 1}
                     </span>
                     <span>{step}</span>
@@ -166,13 +168,13 @@ export function ExerciseInfoModal({
               </ol>
             </section>
           ) : (
-            <p className="text-zinc-500">Chưa có hướng dẫn cho bài tập này.</p>
+            <p className="text-muted-foreground">Chưa có hướng dẫn cho bài tập này.</p>
           )}
 
           {tips.map((tip, i) => (
             <p
               key={i}
-              className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-200"
+              className="rounded-2xl border border-accent/40 bg-accent/10 p-3 text-sm leading-relaxed text-foreground"
             >
               <span className="font-semibold">💡 Lưu ý: </span>
               {tip}
@@ -181,11 +183,11 @@ export function ExerciseInfoModal({
         </div>
 
         {/* Nút đóng to ở vùng ngón cái */}
-        <div className="shrink-0 border-t border-zinc-800 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-border px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onClose}
-            className="h-14 w-full rounded-xl bg-zinc-800 text-lg font-semibold text-zinc-100 active:bg-zinc-700"
+            className="h-14 w-full rounded-xl bg-muted text-lg font-semibold text-foreground active:bg-muted/70"
           >
             Đã hiểu
           </button>

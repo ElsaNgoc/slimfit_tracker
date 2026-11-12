@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PgDialect } from "drizzle-orm/pg-core";
 
 // ---------- Mocks (hoisted trước khi import actions) ----------
@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
       "where",
       "from",
       "limit",
+      "orderBy",
       "onConflictDoUpdate",
       "onConflictDoNothing",
     ]) {
@@ -52,12 +53,14 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh }));
 
-import { workoutLogs, workoutSets, dailyLogs, users, nutritionLogs, customFoods, habits, habitLogs, favoriteVideos } from "@/db/schema";
+import { workoutLogs, workoutSets, dailyLogs, users, nutritionLogs, customFoods, habits, habitLogs, favoriteVideos, weightLogs } from "@/db/schema";
 import {
-  createWorkoutLog,
-  deleteWorkoutLog,
-  saveWorkoutSets,
-  updateWorkoutLog,
+  addWorkoutSet,
+  changeWorkoutExercise,
+  deleteWorkoutSet,
+  removeWorkoutExercise,
+  saveWorkoutNotes,
+  updateWorkoutSet,
 } from "@/actions/workout-logs";
 import { upsertDailyLog } from "@/actions/daily-logs";
 import { updateProfile } from "@/actions/profile";
@@ -66,186 +69,167 @@ import { createHabit, deleteHabit, setHabitCompleted } from "@/actions/habits";
 import { updateWeeklySchedule } from "@/actions/schedule";
 import { addFavoriteVideo, deleteFavoriteVideo } from "@/actions/favorite-videos";
 import { deleteCustomFood, updateCustomFood } from "@/actions/custom-foods";
+import { upsertWeightLog } from "@/actions/weight-logs";
 
 const { chain, db } = mocks;
 const USER = "user_test_123";
 
 beforeEach(() => {
-  mocks.requireUserId.mockResolvedValue(USER);
+  // clearMocks chỉ xoá lịch sử gọi, KHÔNG xoá mockResolvedValue / mockReturnValue → reset hẳn để test không
+  // vô tình dùng giá trị trả về của test chạy trước (đã từng làm test updateProfile pass sai).
+  for (const fn of Object.values(db)) fn.mockReset();
+  mocks.requireUserId.mockReset().mockResolvedValue(USER);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
-// ---------- workout-logs ----------
+// ---------- workout-logs (auto-save) ----------
 
-describe("createWorkoutLog", () => {
-  it("chèn đúng userId / date / notes rồi trả về bản ghi", async () => {
-    const row = { id: 1, userId: USER, date: "2026-11-11", notes: "Leg day" };
-    const q = chain([row]);
+describe("workout-logs: auto-save từng thao tác", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-12T03:00:00Z")); // 10h sáng 12/11 giờ VN
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const SET = { id: 55, workoutLogId: 7, exerciseId: 10, phase: "main", setNumber: 1, reps: 10, weight: 42.5, durationSec: null, completed: false };
+
+  it("addWorkoutSet (chính): buổi tập đã có → chỉ INSERT set; set_number = max + 1 tính trong SQL", async () => {
+    db.select.mockReturnValue(chain([{ id: 7 }]));
+    const q = chain([SET]);
     db.insert.mockReturnValue(q);
 
-    const res = await createWorkoutLog({ date: "2026-11-11", notes: "  Leg day  " });
+    const res = await addWorkoutSet({ phase: "main", date: "2026-11-12", exerciseId: 10, reps: 10, weight: 42.5 });
 
-    expect(res).toEqual({ ok: true, data: row });
-    expect(db.insert).toHaveBeenCalledWith(workoutLogs);
-    // notes được trim; userId lấy từ session chứ không từ input
-    expect(q.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-11", notes: "Leg day" });
-    expect(q.returning).toHaveBeenCalled();
-  });
-
-  it("notes rỗng/undefined → lưu null", async () => {
-    const q = chain([{ id: 2 }]);
-    db.insert.mockReturnValue(q);
-
-    await createWorkoutLog({ date: "2026-11-11" });
-
-    expect(q.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-11", notes: null });
-  });
-
-  it.each(["11/11/2026", "2026-13-01", "", "not-a-date"])(
-    "ngày không hợp lệ %j → lỗi validate, KHÔNG gọi DB",
-    async (date) => {
-      const res = await createWorkoutLog({ date });
-
-      expect(res.ok).toBe(false);
-      if (!res.ok) {
-        expect(res.error).toBe("Dữ liệu không hợp lệ.");
-        expect(res.fieldErrors?.date).toBeDefined();
-      }
-      expect(db.insert).not.toHaveBeenCalled();
-    },
-  );
-
-  it("notes quá 1000 ký tự bị từ chối", async () => {
-    const res = await createWorkoutLog({ date: "2026-11-11", notes: "x".repeat(1001) });
-    expect(res.ok).toBe(false);
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it("chưa đăng nhập → thông báo cần đăng nhập", async () => {
-    mocks.requireUserId.mockRejectedValue(new mocks.UnauthorizedError());
-
-    const res = await createWorkoutLog({ date: "2026-11-11" });
-
-    expect(res).toEqual({ ok: false, error: "Bạn cần đăng nhập." });
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it("lỗi DB → thông báo chung, không lộ chi tiết", async () => {
-    db.insert.mockReturnValue(chain([], new Error("connection reset")));
-
-    const res = await createWorkoutLog({ date: "2026-11-11" });
-
-    expect(res).toEqual({ ok: false, error: "Đã có lỗi xảy ra, vui lòng thử lại." });
-  });
-});
-
-describe("updateWorkoutLog", () => {
-  it("chỉ cập nhật field được gửi lên", async () => {
-    const q = chain([{ id: 5, date: "2026-11-10", notes: null }]);
-    db.update.mockReturnValue(q);
-
-    const res = await updateWorkoutLog({ id: 5, date: "2026-11-10" });
-
-    expect(res.ok).toBe(true);
-    expect(db.update).toHaveBeenCalledWith(workoutLogs);
-    expect(q.set).toHaveBeenCalledWith({ date: "2026-11-10" });
-    expect(q.where).toHaveBeenCalledTimes(1);
-  });
-
-  it("không có gì để cập nhật → lỗi, không gọi DB", async () => {
-    const res = await updateWorkoutLog({ id: 5 });
-    expect(res).toEqual({ ok: false, error: "Không có gì để cập nhật." });
-    expect(db.update).not.toHaveBeenCalled();
-  });
-
-  it("không tìm thấy (hoặc không phải chủ sở hữu) → lỗi", async () => {
-    db.update.mockReturnValue(chain([]));
-    const res = await updateWorkoutLog({ id: 99, notes: "x" });
-    expect(res).toEqual({ ok: false, error: "Không tìm thấy buổi tập." });
-  });
-});
-
-describe("deleteWorkoutLog", () => {
-  it("id không hợp lệ → không gọi DB", async () => {
-    const res = await deleteWorkoutLog(-1);
-    expect(res.ok).toBe(false);
-    expect(db.delete).not.toHaveBeenCalled();
-  });
-
-  it("xoá thành công trả về id", async () => {
-    db.delete.mockReturnValue(chain([{ id: 3 }]));
-    const res = await deleteWorkoutLog(3);
-    expect(res).toEqual({ ok: true, data: { id: 3 } });
-    expect(db.delete).toHaveBeenCalledWith(workoutLogs);
-  });
-});
-
-describe("saveWorkoutSets", () => {
-  const ownsLog = () => db.select.mockReturnValueOnce(chain([{ id: 10 }]));
-
-  it("buổi tập không thuộc user → lỗi, không ghi set", async () => {
-    db.select.mockReturnValueOnce(chain([]));
-
-    const res = await saveWorkoutSets({
-      workoutLogId: 10,
-      sets: [{ exerciseId: 1, setNumber: 1, reps: 10 }],
-    });
-
-    expect(res).toEqual({ ok: false, error: "Không tìm thấy buổi tập." });
-    expect(db.batch).not.toHaveBeenCalled();
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it("xoá set cũ + chèn set mới trong 1 batch, weight thiếu → null", async () => {
-    ownsLog();
-    const del = chain();
-    const ins = chain();
-    db.delete.mockReturnValue(del);
-    db.insert.mockReturnValue(ins);
-    const inserted = [{ id: 100 }, { id: 101 }];
-    db.batch.mockResolvedValue([[], inserted]);
-
-    const res = await saveWorkoutSets({
-      workoutLogId: 10,
-      sets: [
-        { exerciseId: 1, setNumber: 1, reps: 12, weight: 40 },
-        { exerciseId: 1, setNumber: 2, reps: 10 }, // bodyweight
-      ],
-    });
-
-    expect(res).toEqual({ ok: true, data: inserted });
-    expect(db.delete).toHaveBeenCalledWith(workoutSets);
+    expect(res).toEqual({ ok: true, data: { logId: 7, set: SET } });
+    expect(db.insert).toHaveBeenCalledTimes(1);
     expect(db.insert).toHaveBeenCalledWith(workoutSets);
-    expect(ins.values).toHaveBeenCalledWith([
-      { workoutLogId: 10, exerciseId: 1, setNumber: 1, reps: 12, weight: 40 },
-      { workoutLogId: 10, exerciseId: 1, setNumber: 2, reps: 10, weight: null },
-    ]);
-    expect(db.batch).toHaveBeenCalledWith([del, ins]);
+    const values = q.values.mock.calls[0][0];
+    expect(values).toMatchObject({ workoutLogId: 7, exerciseId: 10, phase: "main", reps: 10, weight: 42.5 });
+    const setNumber = new PgDialect().sqlToQuery(values.setNumber);
+    expect(setNumber.sql).toMatch(/coalesce\(max\("workout_sets"."set_number"\), 0\) \+ 1/);
+    expect(setNumber.params).toEqual([7, 10]);
+    // Tìm buổi tập của đúng user + ngày
+    const find = whereSql(db.select.mock.results[0].value);
+    expect(find.sql).toContain('"workout_logs"."user_id" = $');
+    expect(find.params).toEqual(expect.arrayContaining([USER, "2026-11-12"]));
   });
 
-  it("danh sách rỗng → chỉ xoá, không insert", async () => {
-    ownsLog();
-    const del = chain();
-    db.delete.mockReturnValue(del);
+  it("addWorkoutSet: chưa có buổi tập của ngày → tạo workout_logs trước rồi mới ghi set", async () => {
+    db.select.mockReturnValue(chain([]));
+    const logQ = chain([{ id: 9 }]);
+    const setQ = chain([{ ...SET, workoutLogId: 9 }]);
+    db.insert.mockReturnValueOnce(logQ).mockReturnValueOnce(setQ);
 
-    const res = await saveWorkoutSets({ workoutLogId: 10, sets: [] });
+    const res = await addWorkoutSet({ phase: "main", date: "2026-11-11", exerciseId: 10, reps: 8, weight: null });
 
-    expect(res).toEqual({ ok: true, data: [] });
-    expect(db.delete).toHaveBeenCalledWith(workoutSets);
-    expect(db.insert).not.toHaveBeenCalled();
-    expect(db.batch).not.toHaveBeenCalled();
+    expect(res.ok && res.data.logId).toBe(9);
+    expect(db.insert).toHaveBeenNthCalledWith(1, workoutLogs);
+    expect(logQ.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-11" });
+    expect(db.insert).toHaveBeenNthCalledWith(2, workoutSets);
+    expect(setQ.values.mock.calls[0][0]).toMatchObject({ workoutLogId: 9, reps: 8, weight: null });
+  });
+
+  it("addWorkoutSet (đốt mỡ): không có rep / tạ, lưu hoàn thành + thời gian", async () => {
+    db.select.mockReturnValue(chain([{ id: 7 }]));
+    const q = chain([SET]);
+    db.insert.mockReturnValue(q);
+    await addWorkoutSet({ phase: "finisher", date: "2026-11-12", exerciseId: 31, completed: true, durationSec: 45 });
+    const values = q.values.mock.calls[0][0];
+    expect(values).toMatchObject({ workoutLogId: 7, exerciseId: 31, phase: "finisher", completed: true, durationSec: 45 });
+    expect(values).not.toHaveProperty("reps");
+    expect(values).not.toHaveProperty("weight");
   });
 
   it.each([
-    ["reps âm", { exerciseId: 1, setNumber: 1, reps: -1 }],
-    ["reps lẻ", { exerciseId: 1, setNumber: 1, reps: 8.5 }],
-    ["tạ âm", { exerciseId: 1, setNumber: 1, reps: 8, weight: -5 }],
-    ["setNumber = 0", { exerciseId: 1, setNumber: 0, reps: 8 }],
-  ])("%s → lỗi validate, không chạm DB", async (_, set) => {
-    const res = await saveWorkoutSets({ workoutLogId: 10, sets: [set] });
-    expect(res.ok).toBe(false);
+    ["ngày tương lai (giờ VN)", { phase: "main", date: "2026-11-13", exerciseId: 1, reps: 10, weight: null }, "Không thể ghi buổi tập cho ngày trong tương lai."],
+    ["rep = 0", { phase: "main", date: "2026-11-12", exerciseId: 1, reps: 0, weight: null }, "Số rep phải từ 1 đến 1000."],
+    ["tạ âm", { phase: "main", date: "2026-11-12", exerciseId: 1, reps: 10, weight: -5 }, "Mức tạ phải từ 0 đến 1000 kg."],
+  ] as const)("addWorkoutSet: %s → lỗi tiếng Việt, không chạm DB", async (_, input, error) => {
+    expect(await addWorkoutSet(input)).toEqual({ ok: false, error });
     expect(db.select).not.toHaveBeenCalled();
-    expect(db.batch).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  /** Điều kiện sở hữu: WHERE chính có "workout_log_id in (subquery)", subquery lọc workout_logs theo user. */
+  const expectOwnedByUser = (q: ReturnType<typeof chain>) => {
+    // Subquery giả biên dịch thành tham số ("in $n"); chạy thật là "in (select id from workout_logs where user_id = …)"
+    expect(whereSql(q).sql).toMatch(/"workout_sets"."workout_log_id" in \$\d/);
+    expect(db.select).toHaveBeenCalledWith({ id: workoutLogs.id });
+    const sub = whereSql(db.select.mock.results.at(-1)!.value);
+    expect(sub.sql).toBe('"workout_logs"."user_id" = $1');
+    expect(sub.params).toEqual([USER]);
+  };
+
+  it("updateWorkoutSet: chỉ ghi field được gửi, lọc theo buổi tập của user (subquery)", async () => {
+    const q = chain([SET]);
+    db.update.mockReturnValue(q);
+    db.select.mockImplementation(() => chain());
+
+    expect(await updateWorkoutSet({ id: 55, weight: 45 })).toEqual({ ok: true, data: SET });
+    expect(db.update).toHaveBeenCalledWith(workoutSets);
+    expect(q.set).toHaveBeenCalledWith({ weight: 45 });
+    expect(whereSql(q).sql).toContain('"workout_sets"."id" = $');
+    expect(whereSql(q).params[0]).toBe(55);
+    expectOwnedByUser(q);
+  });
+
+  it("updateWorkoutSet: không tìm thấy (của người khác) / không có gì để sửa → lỗi", async () => {
+    db.update.mockReturnValue(chain([]));
+    db.select.mockImplementation(() => chain());
+    expect(await updateWorkoutSet({ id: 99, completed: true })).toEqual({ ok: false, error: "Không tìm thấy hiệp tập." });
+    db.update.mockClear();
+    expect(await updateWorkoutSet({ id: 99 })).toEqual({ ok: false, error: "Không có gì để cập nhật." });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it("deleteWorkoutSet: xoá kèm điều kiện sở hữu", async () => {
+    const q = chain([{ id: 55 }]);
+    db.delete.mockReturnValue(q);
+    db.select.mockImplementation(() => chain());
+    expect(await deleteWorkoutSet(55)).toEqual({ ok: true, data: { id: 55 } });
+    expectOwnedByUser(q);
+    db.delete.mockReturnValue(chain([]));
+    expect(await deleteWorkoutSet(56)).toEqual({ ok: false, error: "Không tìm thấy hiệp tập." });
+  });
+
+  it("changeWorkoutExercise / removeWorkoutExercise: chỉ tác động bài đó trong buổi tập của user", async () => {
+    db.select.mockImplementation(() => chain());
+    const up = chain([{ id: 1 }, { id: 2 }]);
+    db.update.mockReturnValue(up);
+    expect(await changeWorkoutExercise({ logId: 7, fromExerciseId: 11, toExerciseId: 13 })).toEqual({ ok: true, data: { count: 2 } });
+    expect(up.set).toHaveBeenCalledWith({ exerciseId: 13 });
+    expect(whereSql(up).params.slice(0, 2)).toEqual([7, 11]);
+    expectOwnedByUser(up);
+
+    const del = chain([{ id: 1 }]);
+    db.delete.mockReturnValue(del);
+    expect(await removeWorkoutExercise({ logId: 7, exerciseId: 13 })).toEqual({ ok: true, data: { count: 1 } });
+    expect(whereSql(del).sql).toContain('"workout_sets"."exercise_id" = $');
+    expect(whereSql(del).params.slice(0, 2)).toEqual([7, 13]);
+    expectOwnedByUser(del);
+  });
+
+  it("saveWorkoutNotes: tự tạo buổi tập nếu chưa có, ghi chú trống → null", async () => {
+    db.select.mockReturnValue(chain([]));
+    db.insert.mockReturnValue(chain([{ id: 12 }]));
+    const up = chain();
+    db.update.mockReturnValue(up);
+    expect(await saveWorkoutNotes({ date: "2026-11-12", notes: "  Nghỉ 2 phút  " })).toEqual({ ok: true, data: { logId: 12 } });
+    expect(up.set).toHaveBeenCalledWith({ notes: "Nghỉ 2 phút" });
+
+    db.select.mockReturnValue(chain([{ id: 12 }]));
+    await saveWorkoutNotes({ date: "2026-11-12", notes: "   " });
+    expect(up.set).toHaveBeenLastCalledWith({ notes: null });
+  });
+
+  it("chưa đăng nhập → lỗi, không chạm DB", async () => {
+    mocks.requireUserId.mockRejectedValue(new mocks.UnauthorizedError());
+    expect(await addWorkoutSet({ phase: "main", date: "2026-11-12", exerciseId: 1, reps: 10, weight: null })).toEqual({
+      ok: false,
+      error: "Bạn cần đăng nhập.",
+    });
+    expect(await deleteWorkoutSet(1)).toEqual({ ok: false, error: "Bạn cần đăng nhập." });
+    expect(db.select).not.toHaveBeenCalled();
   });
 });
 
@@ -292,8 +276,11 @@ describe("updateProfile", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-11T05:00:00Z"));
     try {
-      const q = chain([{ id: USER, bmr: 1299, tdee: 1786 }]);
+      const q = chain();
+      const wq = chain();
       db.update.mockReturnValue(q);
+      db.insert.mockReturnValue(wq);
+      db.batch.mockResolvedValue([[{ id: USER, bmr: 1299, tdee: 1786 }], []]);
 
       const res = await updateProfile({
         heightCm: 160,
@@ -315,6 +302,14 @@ describe("updateProfile", () => {
         bmr: 1299,
         tdee: 1786,
       });
+      // Cùng batch: cân nặng ghi vào biểu đồ cho hôm nay (giờ VN), trùng ngày thì cập nhật
+      expect(db.batch).toHaveBeenCalledWith([q, wq]);
+      expect(db.insert).toHaveBeenCalledWith(weightLogs);
+      expect(wq.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-11", weightKg: 60 });
+      expect(wq.onConflictDoUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ target: [weightLogs.userId, weightLogs.date] }),
+      );
+      expect(res).toEqual({ ok: true, data: { id: USER, bmr: 1299, tdee: 1786 } });
       expect(mocks.refresh).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
@@ -830,5 +825,76 @@ describe("deleteCustomFood", () => {
     db.delete.mockClear();
     expect((await deleteCustomFood(-1)).ok).toBe(false);
     expect(db.delete).not.toHaveBeenCalled();
+  });
+});
+
+// ---------- weight-logs (biểu đồ cân nặng) ----------
+
+describe("upsertWeightLog", () => {
+  const PROFILE = { id: USER, height: 160, sex: "female", birthYear: 1998, activityLevel: "light" };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-12T03:00:00Z")); // 10h sáng 12/11 giờ VN
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("ngày mới nhất → upsert log + đồng bộ users.weight và tính lại BMR / TDEE trong cùng batch", async () => {
+    const wq = chain();
+    const uq = chain();
+    db.insert.mockReturnValue(wq);
+    db.update.mockReturnValue(uq);
+    db.select.mockImplementation(() => chain());
+    db.batch.mockResolvedValueOnce([[PROFILE], [{ date: "2026-11-10" }]]).mockResolvedValueOnce([[], []]);
+
+    const res = await upsertWeightLog({ date: "2026-11-12", weightKg: 61.26 });
+
+    expect(res).toEqual({ ok: true, data: { date: "2026-11-12", weightKg: 61.3 } }); // làm tròn 1 chữ số
+    expect(wq.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-12", weightKg: 61.3 });
+    expect(wq.onConflictDoUpdate).toHaveBeenCalledWith(expect.objectContaining({ target: [weightLogs.userId, weightLogs.date] }));
+    // 10·61.3 + 6.25·160 − 5·28 − 161 = 1312 · ×1.375 = 1804
+    expect(uq.set).toHaveBeenCalledWith({ weight: 61.3, bmr: 1312, tdee: 1804 });
+    expect(whereSql(uq).sql).toContain('"users"."id" = $');
+    expect(db.batch).toHaveBeenLastCalledWith([wq, uq]);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("hồ sơ chưa đủ thông tin → vẫn đồng bộ users.weight, không tính BMR / TDEE", async () => {
+    const uq = chain();
+    db.insert.mockReturnValue(chain());
+    db.update.mockReturnValue(uq);
+    db.select.mockImplementation(() => chain());
+    db.batch.mockResolvedValueOnce([[{ id: USER, height: null, sex: null, birthYear: null, activityLevel: null }], []]);
+    db.batch.mockResolvedValueOnce([[], []]);
+
+    expect((await upsertWeightLog({ date: "2026-11-01", weightKg: 64 })).ok).toBe(true);
+    expect(uq.set).toHaveBeenCalledWith({ weight: 64 });
+  });
+
+  it("nhập bù ngày cũ (không phải mới nhất) → chỉ ghi log, không đụng users", async () => {
+    const wq = chain();
+    db.insert.mockReturnValue(wq);
+    db.select.mockImplementation(() => chain());
+    db.batch.mockResolvedValueOnce([[PROFILE], [{ date: "2026-11-12" }]]);
+
+    expect((await upsertWeightLog({ date: "2026-11-05", weightKg: 63 })).ok).toBe(true);
+    expect(wq.values).toHaveBeenCalledWith({ userId: USER, date: "2026-11-05", weightKg: 63 });
+    expect(db.update).not.toHaveBeenCalled();
+    expect(db.batch).toHaveBeenCalledTimes(1); // chỉ batch đọc
+  });
+
+  it.each([
+    ["ngày tương lai (giờ VN)", { date: "2026-11-13", weightKg: 60 }, "Không thể nhập cân nặng cho ngày trong tương lai."],
+    ["quá nhẹ", { date: "2026-11-12", weightKg: 10 }, "Cân nặng từ 25 đến 350 kg."],
+    ["quá nặng", { date: "2026-11-12", weightKg: 400 }, "Cân nặng từ 25 đến 350 kg."],
+  ])("%s → lỗi tiếng Việt, không ghi DB", async (_, input, error) => {
+    expect(await upsertWeightLog(input)).toEqual({ ok: false, error });
+    expect(db.batch).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it("chưa đăng nhập → lỗi", async () => {
+    mocks.requireUserId.mockRejectedValue(new mocks.UnauthorizedError());
+    expect(await upsertWeightLog({ date: "2026-11-12", weightKg: 60 })).toEqual({ ok: false, error: "Bạn cần đăng nhập." });
   });
 });

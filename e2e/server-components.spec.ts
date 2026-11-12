@@ -16,10 +16,12 @@ test("Dashboard `/` render dữ liệu người dùng đã đăng nhập", async
   // Ngày hiển thị theo giờ VN, vd "thứ tư, 11/11"
   await expect(page.locator("header p").first()).toHaveText(/\d{1,2}\/\d{1,2}/);
 
-  // Dinh dưỡng: 4 vòng macro + 4 thẻ bữa ăn; còn lại là widget khung
-  for (const title of ["Dinh dưỡng hôm nay", "Bữa ăn hôm nay", "Gợi ý bài tập hôm nay", "Thói quen hôm nay", "Biểu đồ cân nặng"]) {
+  // Dinh dưỡng: 4 vòng macro + 4 thẻ bữa ăn; bài tập hôm nay; thói quen
+  for (const title of ["Dinh dưỡng hôm nay", "Bữa ăn hôm nay", "Gợi ý bài tập hôm nay", "Thói quen hôm nay"]) {
     await expect(page.getByRole("region", { name: title })).toBeVisible();
   }
+  // Biểu đồ cân nặng đã chuyển sang tab Hồ sơ
+  await expect(page.getByRole("region", { name: /Biểu đồ cân nặng|Cân nặng/ })).toHaveCount(0);
   for (const ring of ["Calories", "Protein", "Carbs", "Fat"]) {
     await expect(page.getByRole("progressbar", { name: ring })).toBeVisible();
   }
@@ -34,13 +36,31 @@ test("Dashboard `/` render dữ liệu người dùng đã đăng nhập", async
   await expect(page.getByRole("button", { name: "Bắt đầu miễn phí" })).toHaveCount(0);
 });
 
-test("`/profile` render TDEE + form hồ sơ từ DB", async ({ page }) => {
+test("`/profile` render TDEE + cân nặng + form hồ sơ + menu; 3 mục menu mở được trang con", async ({ page }) => {
   const res = await page.goto("/profile");
   expect(res?.status()).toBe(200);
   await expect(page).toHaveURL(/\/profile$/);
 
   await expect(page.getByRole("heading", { level: 1, name: "Hồ sơ" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Cân nặng" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Hồ sơ cơ thể" })).toBeVisible();
+
+  const menu = page.getByRole("navigation", { name: "Cài đặt & tiện ích" });
+  const pages = [
+    ["Từ điển món ăn của tôi", /\/profile\/foods$/, "Từ điển món ăn của tôi"],
+    ["Hướng dẫn sử dụng", /\/profile\/guide$/, "Hướng dẫn sử dụng"],
+    ["Cài đặt giao diện", /\/profile\/appearance$/, "Cài đặt giao diện"],
+  ] as const;
+  for (const [link, url, heading] of pages) {
+    await menu.getByRole("link", { name: new RegExp(link) }).click();
+    await expect(page).toHaveURL(url);
+    await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+    // Tab Hồ sơ vẫn được đánh dấu ở trang con
+    const nav = page.getByRole("navigation", { name: "Điều hướng chính" }).filter({ visible: true });
+    await expect(nav.getByRole("link", { name: "Hồ sơ" })).toHaveAttribute("aria-current", "page");
+    await page.getByRole("link", { name: "Hồ sơ", exact: false }).filter({ hasText: "‹" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+  }
 });
 
 test("thanh tab đáy (mobile) điều hướng giữa 3 tab và đánh dấu tab đang mở", async ({ page }) => {
@@ -54,10 +74,9 @@ test("thanh tab đáy (mobile) điều hướng giữa 3 tab và đánh dấu ta
   await expect(page.getByRole("heading", { level: 1, name: "Ghi chép tập luyện" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Tập luyện" })).toHaveAttribute("aria-current", "page");
 
-  // Thanh Save Workout nằm trên thanh tab, không bị che
-  const navBox = await nav.boundingBox();
-  const saveBox = await page.getByRole("button", { name: /^(Save Workout|Cập nhật)/ }).boundingBox();
-  expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(navBox!.y + 1);
+  // Tự động lưu: không còn thanh Save Workout cố định ở đáy
+  await expect(page.getByRole("button", { name: /Save Workout|Cập nhật ·/ })).toHaveCount(0);
+  await expect(page.getByTestId("autosave-status")).toHaveText(/Mọi thay đổi được lưu tự động/);
 
   await nav.getByRole("link", { name: "Hồ sơ" }).click();
   await expect(page).toHaveURL(/\/profile$/);
@@ -71,11 +90,14 @@ test("`/workouts` render danh sách bài gym từ DB + thư viện video giãn c
 
   await expect(page.getByRole("heading", { level: 1, name: "Ghi chép tập luyện" })).toBeVisible();
 
-  const select = page.getByLabel("Thêm bài tập gym");
+  const select = page.getByLabel("Thêm bài tập");
   await expect(select).toBeVisible();
-  // 35 bài gym seed + option placeholder
-  await expect(select.locator("option")).toHaveCount(36);
-  await expect(select.locator("optgroup").first()).toBeAttached();
+  // 41 bài gym seed (35 bài chính + 6 bài đốt mỡ mới) + option placeholder; bài đốt mỡ nằm trong nhóm riêng
+  await expect(select.locator("option")).toHaveCount(42);
+  await expect(select.locator('optgroup[label="🔥 Đốt mỡ cuối buổi"] option')).toHaveCount(8);
+  // 2 khu vực
+  await expect(page.getByRole("heading", { level: 2, name: "Bài tập chính" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Đốt mỡ cuối buổi (10-15 Phút)" })).toBeVisible();
 
   // Ngày mặc định = hôm nay theo giờ VN (server tính)
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
@@ -147,18 +169,22 @@ test("Gợi ý hôm nay theo thứ (giờ VN) + lịch tuần + Swap bài tập"
   await dialog.getByRole("button", { name: "Tập buổi Lower Body 1 (Thứ 2)" }).click();
   await expect(dialog).toBeHidden();
 
-  const cards = page.getByRole("button", { name: /^Xem hướng dẫn / });
-  await expect(cards).toHaveCount(5);
-  await expect(page.getByText("Tạ gợi ý:")).toHaveCount(5);
+  // Lower Body 1: 3 bài chính (nhập kg × rep) + chuỗi 4 bài đốt mỡ (checkbox)
+  const mains = page.locator('section[data-phase="main"]');
+  await expect(mains).toHaveCount(3);
+  await expect(page.getByText("Tạ gợi ý:")).toHaveCount(3);
   await expect(page.getByText("20–30 kg (thanh đòn)").first()).toBeVisible();
+  await expect(page.getByTestId("finisher-row")).toHaveCount(4);
+  for (const label of ["Vung tạ ấm", "Plank", "Gập bụng", "Nâng hông"]) {
+    await expect(page.getByRole("checkbox", { name: new RegExp(label) })).toBeVisible();
+  }
 
-  // Swap Hip Thrust → Glute Bridge (Cable Kickback đã có trong buổi nên không được gợi ý)
+  // Swap Hip Thrust → Cable Kickback (Glute Bridge là bài đốt mỡ → không được gợi ý cho bài chính)
   await page.getByRole("button", { name: "Thay thế Hip Thrust" }).click();
-  await expect(page.getByRole("button", { name: "Đổi sang Cable Kickback" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Đổi sang Glute Bridge" }).click();
-  await expect(cards.first()).toHaveAccessibleName("Xem hướng dẫn Glute Bridge");
-  await expect(page.getByRole("button", { name: "Xem hướng dẫn Hip Thrust" })).toHaveCount(0);
-  await expect(page.getByText("Đã thay Hip Thrust bằng Glute Bridge.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đổi sang Glute Bridge" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Đổi sang Cable Kickback" }).click();
+  await expect(mains.first()).toHaveAttribute("aria-label", "Cable Kickback");
+  await expect(page.getByText("Đã thay Hip Thrust bằng Cable Kickback.")).toBeVisible();
 });
 
 test("Cài đặt lịch tuần → lưu DB → Tổng quan tự gợi ý theo lịch → 'Bắt đầu tập' nạp sẵn bài", async ({ page }) => {
@@ -200,11 +226,13 @@ test("Cài đặt lịch tuần → lưu DB → Tổng quan tự gợi ý theo l
     // 3) "Bắt đầu tập" → /workouts đã nạp sẵn đủ bài, URL sạch query
     await widget.getByRole("link", { name: "Bắt đầu tập" }).click();
     await expect(page).toHaveURL(/\/workouts$/);
-    await expect(page.getByRole("button", { name: /^Xem hướng dẫn / })).toHaveCount(5);
+    const mains = page.locator('section[data-phase="main"]');
+    await expect(mains).toHaveCount(target.id === "lower-1" ? 3 : 4);
+    await expect(page.getByTestId("finisher-row")).toHaveCount(4);
     await expect(page.getByRole("button", { name: `Xem hướng dẫn ${target.first}` })).toBeVisible();
     await expect(page.getByRole("button", { name: "✓ Đã thêm vào buổi tập" })).toBeDisabled();
     await page.reload();
-    await expect(page.getByRole("button", { name: /^Xem hướng dẫn / })).toHaveCount(0); // reload không nạp lại
+    await expect(mains).toHaveCount(0); // chưa tập hiệp nào → reload không nạp lại
 
     // 4) "Đổi lịch" ở Tổng quan → mở thẳng Cài đặt; đặt hôm nay là ngày nghỉ
     await page.goto("/");
@@ -232,7 +260,7 @@ for (const { name, src, credit } of [
 ]) {
   test(`Modal hướng dẫn ${name} hiển thị ảnh tĩnh, không có điều khiển ảnh động`, async ({ page }, testInfo) => {
     await page.goto("/workouts");
-    await page.getByLabel("Thêm bài tập gym").selectOption({ label: name });
+    await page.getByLabel("Thêm bài tập").selectOption({ label: name });
     await page.getByRole("button", { name: "Thêm", exact: true }).click();
     await page.getByRole("button", { name: `Xem hướng dẫn ${name}` }).click();
 
@@ -265,7 +293,7 @@ for (const { name, src, credit } of [
 
 test("Ảnh ghép 2 tư thế đủ nét cho màn hình mobile (≥ 1 pixel ảnh / pixel thiết bị)", async ({ page }) => {
   await page.goto("/workouts");
-  await page.getByLabel("Thêm bài tập gym").selectOption({ label: "Barbell Squat" });
+  await page.getByLabel("Thêm bài tập").selectOption({ label: "Barbell Squat" });
   await page.getByRole("button", { name: "Thêm", exact: true }).click();
   await page.getByRole("button", { name: "Xem hướng dẫn Barbell Squat" }).click();
   const img = page.getByRole("img", { name: "Minh hoạ tư thế Barbell Squat" });

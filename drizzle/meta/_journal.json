@@ -71,6 +71,20 @@
       "when": 1794449294459,
       "tag": "0009_violet_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794452599308,
+      "tag": "0010_faulty_blackheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794454078540,
+      "tag": "0011_lumpy_phalanx",
+      "breakpoints": true
     }
   ]
 }

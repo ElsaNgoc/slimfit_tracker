@@ -1,409 +1,418 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+const nav = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => nav }));
 // Server Actions là module "use server" import DB → mock toàn bộ.
 vi.mock("@/actions/workout-logs", () => ({
-  createWorkoutLog: vi.fn(),
-  updateWorkoutLog: vi.fn(),
-  deleteWorkoutLog: vi.fn(),
-  saveWorkoutSets: vi.fn(),
+  addWorkoutSet: vi.fn(),
+  updateWorkoutSet: vi.fn(),
+  deleteWorkoutSet: vi.fn(),
+  changeWorkoutExercise: vi.fn(),
+  removeWorkoutExercise: vi.fn(),
+  saveWorkoutNotes: vi.fn(),
 }));
 vi.mock("@/actions/schedule", () => ({ updateWeeklySchedule: vi.fn() }));
 
 import * as workoutActions from "@/actions/workout-logs";
 import { WorkoutLogger, type GymExercise } from "@/components/WorkoutLogger";
+import type { WorkoutSet } from "@/db/schema";
 
 const actions = vi.mocked(workoutActions);
 
+const ex = (
+  id: number,
+  name: string,
+  muscleGroup: string,
+  extra: Partial<GymExercise> = {},
+): GymExercise => ({ id, name, category: "gym", muscleGroup, instruction: null, gifUrl: null, imageCredit: null, phase: "main", ...extra });
+
+// Đủ bài cho Lower Body 1 (chính + đốt mỡ); Lower Body 2 thiếu Step-up / Dead Bug.
 const EXERCISES: GymExercise[] = [
-  {
-    id: 1,
-    name: "Romanian Deadlift (RDL)",
-    category: "gym",
-    muscleGroup: "Đùi sau, Mông",
+  ex(10, "Hip Thrust", "Mông, Đùi sau", { recommendedWeight: "20–30 kg (thanh đòn)", tips: "Siết mông 1 giây ở điểm cao." }),
+  ex(11, "Romanian Deadlift (RDL)", "Đùi sau, Mông, Lưng dưới", {
+    recommendedWeight: "15–20 kg tổng cộng",
     instruction: "Đứng thẳng, gối hơi chùng.\nĐẩy hông ra sau.\nLưu ý: Không cong lưng.",
     gifUrl: "https://example.com/rdl.png",
     imageCredit: "wger.de · CC BY-SA 4.0",
-  },
-  {
-    id: 2,
-    name: "Hip Thrust",
-    category: "gym",
-    muscleGroup: "Mông",
-    instruction: null,
-    gifUrl: null,
-    imageCredit: null,
-  },
+  }),
+  ex(12, "Bulgarian Split Squat", "Đùi trước, Mông"),
+  ex(13, "Good Morning", "Đùi sau, Mông"),
+  ex(16, "Goblet Squat", "Đùi trước, Mông"),
+  ex(17, "Leg Press", "Đùi trước, Mông"),
+  ex(18, "Hip Abduction", "Mông nhỡ"),
+  ex(30, "Kettlebell Swing", "Mông, Core", { phase: "finisher" }),
+  ex(31, "Plank", "Core (Bụng)", { phase: "finisher" }),
+  ex(32, "Crunch", "Bụng trên", { phase: "finisher" }),
+  ex(33, "Glute Bridge", "Mông, Đùi sau", { phase: "finisher" }),
+  ex(34, "Jumping Jack", "Toàn thân", { phase: "finisher" }),
 ];
+const MONDAY = "2026-11-09"; // Lower Body 1
+const WEDNESDAY = "2026-11-11"; // Active Rest / Yoga
+const THURSDAY = "2026-11-12"; // Lower Body 2
+const SUNDAY = "2026-11-15"; // Nghỉ
 
-// ---------- WorkoutLogger ----------
+// ---------- DB giả cho Server Actions ----------
 
-describe("WorkoutLogger", () => {
-  const setup = () => {
-    const user = userEvent.setup();
-    render(<WorkoutLogger exercises={EXERCISES} today="2026-11-11" />);
-    return { user };
-  };
+let nextId = 100;
+const LOG_ID = 7;
+function fakeServer() {
+  actions.addWorkoutSet.mockImplementation(async (input) => {
+    const set = {
+      id: nextId++,
+      workoutLogId: LOG_ID,
+      exerciseId: input.exerciseId,
+      phase: input.phase,
+      setNumber: 1,
+      reps: input.phase === "main" ? input.reps : null,
+      weight: input.phase === "main" ? input.weight : null,
+      durationSec: input.phase === "finisher" ? (input.durationSec ?? null) : null,
+      completed: input.phase === "finisher" ? (input.completed ?? true) : false,
+    } satisfies WorkoutSet;
+    return { ok: true, data: { logId: LOG_ID, set } };
+  });
+  actions.updateWorkoutSet.mockImplementation(async ({ id }) => ({ ok: true, data: { id } as WorkoutSet }));
+  actions.deleteWorkoutSet.mockImplementation(async (id) => ({ ok: true, data: { id } }));
+  actions.changeWorkoutExercise.mockResolvedValue({ ok: true, data: { count: 1 } });
+  actions.removeWorkoutExercise.mockResolvedValue({ ok: true, data: { count: 1 } });
+  actions.saveWorkoutNotes.mockResolvedValue({ ok: true, data: { logId: LOG_ID } });
+}
 
-  const addExercise = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
-    await user.selectOptions(screen.getByLabelText("Thêm bài tập gym"), name);
-    await user.click(screen.getByRole("button", { name: "Thêm" }));
-  };
+/** Promise tự giải quyết bằng tay — kiểm tra giao diện TRƯỚC khi server trả lời (optimistic). */
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
 
-  it("render đúng trạng thái ban đầu", () => {
+beforeEach(() => {
+  nextId = 100;
+  fakeServer();
+});
+
+const setup = (props: Partial<Parameters<typeof WorkoutLogger>[0]> = {}) => {
+  const user = userEvent.setup();
+  render(<WorkoutLogger exercises={EXERCISES} today={MONDAY} {...props} />);
+  return { user };
+};
+const mainCard = (name: string) => screen.getByRole("region", { name });
+const startToday = (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole("button", { name: /^Bắt đầu bài tập/ }));
+const finisherRow = (label: RegExp) => screen.getByRole("checkbox", { name: label }).closest("li")!;
+const status = () => screen.getByTestId("autosave-status");
+
+// ---------- Bố cục 2 khu vực + không còn nút Save ----------
+
+describe("WorkoutLogger — bố cục & lịch tập mẫu", () => {
+  it("2 khu vực có tiêu đề lớn, không còn nút Save Workout / Cập nhật, báo tự động lưu", () => {
     setup();
-    expect(screen.getByLabelText("Ngày tập")).toHaveValue("2026-11-11");
-    expect(screen.getByRole("option", { name: "Romanian Deadlift (RDL)" })).toBeInTheDocument();
-    // Chưa chọn bài → nút Thêm bị khoá; chưa có set → Save bị khoá
-    expect(screen.getByRole("button", { name: "Thêm" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Save Workout/ })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "+ Add Set" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Bài tập chính" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Đốt mỡ cuối buổi (10-15 Phút)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Save Workout|Cập nhật/ })).not.toBeInTheDocument();
+    expect(status()).toHaveTextContent("Mọi thay đổi được lưu tự động");
   });
 
-  it("báo khi chưa có bài tập nào trong DB", () => {
-    render(<WorkoutLogger exercises={[]} today="2026-11-11" />);
-    expect(screen.getByText("Chưa có bài tập gym nào trong hệ thống.")).toBeInTheDocument();
-  });
-
-  it("thêm bài tập → hiện form nhập nhanh, bài đã chọn bị khoá trong danh sách", async () => {
+  it("Thứ 2 = Lower Body 1: 'Bắt đầu' nạp 3 bài chính + chuỗi 4 bài đốt mỡ (tên Việt + mục tiêu), chưa ghi DB", async () => {
     const { user } = setup();
-    await addExercise(user, "Romanian Deadlift (RDL)");
+    const today = screen.getByRole("region", { name: /Gợi ý bài tập cho hôm nay \(Thứ 2\)/ });
+    expect(today).toHaveTextContent("+ Đốt Mỡ Cuối Buổi: Vung tạ ấm · Plank · Gập bụng · Nâng hông");
+    await startToday(user);
 
-    expect(screen.getByRole("button", { name: "Xem hướng dẫn Romanian Deadlift (RDL)" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Số set")).toHaveValue("3");
-    expect(screen.getByLabelText("Số rep")).toHaveValue("10");
-    expect(screen.getByLabelText("Tạ (kg)")).toHaveValue("");
-    expect(screen.getByRole("button", { name: "+ Add Set" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Romanian Deadlift (RDL)" })).toBeDisabled();
+    const mains = screen.getAllByRole("region").filter((r) => r.dataset.phase === "main");
+    expect(mains.map((r) => r.getAttribute("aria-label"))).toEqual(["Hip Thrust", "Romanian Deadlift (RDL)", "Bulgarian Split Squat"]);
+    const finisher = screen.getAllByTestId("finisher-row").map((r) => r.textContent);
+    expect(finisher[0]).toMatch(/1\. Vung tạ ấm \(Kettlebell Swing\)Mỗi vòng: 15 lần/);
+    expect(finisher[1]).toMatch(/2\. PlankMỗi vòng: 40 giây/);
+    expect(finisher[2]).toMatch(/3\. Gập bụng \(Crunch\)Mỗi vòng: 15 lần/);
+    expect(finisher[3]).toMatch(/4\. Nâng hông \(Glute Bridge\)Mỗi vòng: 20 lần/);
+    expect(screen.getByTestId("finisher-progress")).toHaveTextContent("Đã xong 0 / 4 bài");
+    expect(within(mainCard("Hip Thrust")).getByText(/Tạ gợi ý:/).closest("p")).toHaveTextContent("Tạ gợi ý: 20–30 kg (thanh đòn)");
+    // Thêm bài vào buổi chưa phải là ghi DB (chưa tập hiệp nào)
+    expect(actions.addWorkoutSet).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "✓ Đã thêm vào buổi tập" })).toBeDisabled();
   });
 
-  it("Add Set tạo đúng số set với rep/tạ đã nhập (chấp nhận dấu phẩy)", async () => {
-    const { user } = setup();
-    await addExercise(user, "Romanian Deadlift (RDL)");
-
-    await user.clear(screen.getByLabelText("Số set"));
-    await user.type(screen.getByLabelText("Số set"), "2");
-    await user.clear(screen.getByLabelText("Số rep"));
-    await user.type(screen.getByLabelText("Số rep"), "8");
-    await user.type(screen.getByLabelText("Tạ (kg)"), "42,5");
-    await user.click(screen.getByRole("button", { name: "+ Add Set" }));
-
-    expect(screen.getAllByText("8 rep × 42.5 kg")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Save Workout · 2 set" })).toBeEnabled();
-  });
-
-  it("bỏ trống tạ → hiển thị BW (bodyweight); xoá được từng set", async () => {
-    const { user } = setup();
-    await addExercise(user, "Hip Thrust");
-    await user.click(screen.getByRole("button", { name: "+ Add Set" }));
-
-    expect(screen.getAllByText("10 rep × BW")).toHaveLength(3);
-    await user.click(screen.getByRole("button", { name: "Xoá set 1" }));
-    expect(screen.getAllByText("10 rep × BW")).toHaveLength(2);
+  it("Thứ 5 = Lower Body 2 thiếu bài trong DB → báo; Thứ 4 yoga / Chủ nhật nghỉ → không có nút bắt đầu", async () => {
+    const { user } = setup({ today: THURSDAY });
+    await startToday(user);
+    expect(screen.getByText(/bài chưa có trong hệ thống \(cần chạy db:seed\)/)).toBeInTheDocument();
   });
 
   it.each([
-    ["Số set", "0", "Số set phải từ 1 đến 20."],
-    ["Số rep", "abc", "Số rep phải là số nguyên ≥ 1."],
-    ["Tạ (kg)", "-5", "Mức tạ không hợp lệ (0–1000 kg)."],
-  ])("input sai ở %s → báo lỗi, không crash, không thêm set", async (label, value, message) => {
-    const { user } = setup();
-    await addExercise(user, "Hip Thrust");
-    await user.clear(screen.getByLabelText(label));
-    await user.type(screen.getByLabelText(label), value);
-    await user.click(screen.getByRole("button", { name: "+ Add Set" }));
-
-    expect(screen.getByRole("alert")).toHaveTextContent(message);
-    expect(screen.queryByText(/rep ×/)).not.toBeInTheDocument();
+    [WEDNESDAY, /Xem video giãn cơ/],
+    [SUNDAY, /Cơ bắp phát triển trong lúc nghỉ/],
+  ])("%s → không có nút bắt đầu bài gym", (day, text) => {
+    setup({ today: day });
+    expect(screen.queryByRole("button", { name: /^Bắt đầu bài tập/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText(text).length).toBeGreaterThan(0);
   });
 
-  it("Save Workout gọi createWorkoutLog rồi saveWorkoutSets với setNumber đúng", async () => {
-    actions.createWorkoutLog.mockResolvedValue({
-      ok: true,
-      data: { id: 77, userId: "u", date: "2026-11-11", notes: null },
-    });
-    actions.saveWorkoutSets.mockImplementation(async ({ sets }) => ({
-      ok: true,
-      data: sets.map((s, i) => ({ id: i, workoutLogId: 77, ...s, weight: s.weight ?? null })),
-    }));
-
+  it("thêm bài thủ công: bài đốt mỡ vào khu Đốt mỡ, bài tạ vào Bài tập chính", async () => {
     const { user } = setup();
-    await addExercise(user, "Romanian Deadlift (RDL)");
-    await user.type(screen.getByLabelText("Tạ (kg)"), "40");
-    await user.click(screen.getByRole("button", { name: "+ Add Set" }));
-    await addExercise(user, "Hip Thrust");
-    const hipCard = screen.getByRole("button", { name: "Xem hướng dẫn Hip Thrust" }).closest("section")!;
-    await user.clear(within(hipCard).getByLabelText("Số set"));
-    await user.type(within(hipCard).getByLabelText("Số set"), "1");
-    await user.click(within(hipCard).getByRole("button", { name: "+ Add Set" }));
-
-    await user.click(screen.getByRole("button", { name: "Save Workout · 4 set" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("Đã lưu 4 set (2 bài tập).");
-    expect(actions.createWorkoutLog).toHaveBeenCalledWith({ date: "2026-11-11", notes: null });
-    expect(actions.saveWorkoutSets).toHaveBeenCalledWith({
-      workoutLogId: 77,
-      sets: [
-        { exerciseId: 1, setNumber: 1, reps: 10, weight: 40 },
-        { exerciseId: 1, setNumber: 2, reps: 10, weight: 40 },
-        { exerciseId: 1, setNumber: 3, reps: 10, weight: 40 },
-        { exerciseId: 2, setNumber: 1, reps: 10, weight: null },
-      ],
-    });
-    // Lần lưu sau sẽ là "Cập nhật" và có nút "Buổi mới"
-    // isPending của transition tắt sau khi status đã hiện → chờ nút đổi nhãn
-    expect(await screen.findByRole("button", { name: /^Cập nhật/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Buổi mới" })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Thêm bài tập"), "Bật nhảy dang tay chân (Jumping Jack)");
+    await user.click(screen.getByRole("button", { name: "Thêm" }));
+    await user.selectOptions(screen.getByLabelText("Thêm bài tập"), "Good Morning");
+    await user.click(screen.getByRole("button", { name: "Thêm" }));
+    expect(screen.getByRole("checkbox", { name: /Bật nhảy dang tay chân/ })).toBeInTheDocument();
+    expect(mainCard("Good Morning").dataset.phase).toBe("main");
   });
 
-  it("lưu set thất bại → rollback buổi tập vừa tạo và hiện lỗi", async () => {
-    actions.createWorkoutLog.mockResolvedValue({
-      ok: true,
-      data: { id: 88, userId: "u", date: "2026-11-11", notes: null },
-    });
-    actions.saveWorkoutSets.mockResolvedValue({ ok: false, error: "Đã có lỗi xảy ra, vui lòng thử lại." });
-    actions.deleteWorkoutLog.mockResolvedValue({ ok: true, data: { id: 88 } });
-
-    const { user } = setup();
-    await addExercise(user, "Hip Thrust");
-    await user.click(screen.getByRole("button", { name: "+ Add Set" }));
-    await user.click(screen.getByRole("button", { name: /Save Workout/ }));
-
-    await waitFor(() => expect(actions.deleteWorkoutLog).toHaveBeenCalledWith(88));
-    // `isPending` của transition tắt sau khi rollback chạy → chờ bằng findBy (tránh race)
-    expect(await screen.findByRole("alert")).toHaveTextContent("Đã có lỗi xảy ra, vui lòng thử lại.");
-    expect(await screen.findByRole("button", { name: /Save Workout/ })).toBeInTheDocument();
-  });
-
-  it("bấm tên bài tập → mở modal hướng dẫn, đóng được", async () => {
-    const { user } = setup();
-    await addExercise(user, "Romanian Deadlift (RDL)");
-    await user.click(screen.getByRole("button", { name: "Xem hướng dẫn Romanian Deadlift (RDL)" }));
-
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("heading", { name: "Romanian Deadlift (RDL)" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("img", { name: /Minh hoạ tư thế/ })).toHaveAttribute(
-      "src",
-      "https://example.com/rdl.png",
-    );
-    expect(within(dialog).getByText("Đùi sau")).toBeInTheDocument();
-    expect(within(dialog).getByText("Đẩy hông ra sau.")).toBeInTheDocument();
-    expect(within(dialog).getByText("Không cong lưng.")).toBeInTheDocument();
-
-    await user.click(within(dialog).getByRole("button", { name: "Đã hiểu" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  it("đổi ngày tập → chuyển URL ?date= (server nạp buổi tập của ngày đó)", async () => {
+    setup({ today: THURSDAY, date: MONDAY });
+    // Ô ngày là controlled (giá trị theo URL) → giả lập chọn ngày trong date picker
+    const input = screen.getByLabelText("Ngày tập");
+    expect(input).toHaveValue(MONDAY);
+    fireEvent.change(input, { target: { value: "2026-11-10" } });
+    expect(nav.push).toHaveBeenLastCalledWith("/workouts?date=2026-11-10");
+    fireEvent.change(input, { target: { value: THURSDAY } });
+    expect(nav.push).toHaveBeenLastCalledWith("/workouts"); // hôm nay → URL gọn
+    nav.push.mockClear();
+    fireEvent.change(input, { target: { value: "2026-11-20" } }); // tương lai → bỏ qua
+    expect(nav.push).not.toHaveBeenCalled();
   });
 });
 
-// ---------- WorkoutLogger · Gợi ý hôm nay / Lịch tuần / Swap ----------
+// ---------- Auto-save: Bài Tập Chính ----------
 
-describe("WorkoutLogger — gợi ý hôm nay, lịch tuần, thay thế bài", () => {
-  const ex = (
-    id: number,
-    name: string,
-    muscleGroup: string,
-    recommendedWeight: string | null = null,
-    tips: string | null = null,
-  ): GymExercise => ({
-    id,
-    name,
-    category: "gym",
-    muscleGroup,
-    instruction: null,
-    gifUrl: null,
-    imageCredit: null,
-    recommendedWeight,
-    tips,
+describe("WorkoutLogger — auto-save Bài Tập Chính", () => {
+  it("+ Thêm hiệp: hiện ngay (optimistic) rồi mới lưu xong; hiệp sau chép rep / kg hiệp trước", async () => {
+    const pending = deferred<Awaited<ReturnType<typeof actions.addWorkoutSet>>>();
+    actions.addWorkoutSet.mockImplementationOnce(() => pending.promise);
+    const { user } = setup();
+    await startToday(user);
+    const card = mainCard("Hip Thrust");
+
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    const row = within(card).getByTestId("set-row");
+    expect(row).toHaveAttribute("data-saved", "false"); // đã hiện, chưa có id
+    expect(within(card).getByLabelText("Số rep hiệp 1")).toHaveValue("10");
+    expect(status()).toHaveTextContent("Đang lưu…");
+    expect(actions.addWorkoutSet).toHaveBeenCalledWith({ phase: "main", date: MONDAY, exerciseId: 10, reps: 10, weight: null });
+
+    await act(async () =>
+      pending.resolve({
+        ok: true,
+        data: {
+          logId: LOG_ID,
+          set: { id: 55, workoutLogId: LOG_ID, exerciseId: 10, phase: "main", setNumber: 1, reps: 10, weight: null, durationSec: null, completed: false },
+        },
+      }),
+    );
+    expect(row).toHaveAttribute("data-saved", "true");
+    expect(status()).toHaveTextContent(/Đã lưu lúc/);
+
+    // Sửa kg → rời ô → lưu đúng hiệp (id 55)
+    const kg = within(card).getByLabelText("Tạ (kg) hiệp 1");
+    await user.type(kg, "42,5");
+    await user.tab();
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 55, reps: 10, weight: 42.5 }));
+
+    // Hiệp 2 chép 10 rep × 42,5 kg
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    expect(within(card).getByLabelText("Tạ (kg) hiệp 2")).toHaveValue("42,5");
+    expect(actions.addWorkoutSet).toHaveBeenLastCalledWith({ phase: "main", date: MONDAY, exerciseId: 10, reps: 10, weight: 42.5 });
   });
-  // Đủ bài cho Lower Body 1 + vài bài để swap; thiếu "Step-up" của Lower Body 2.
-  const TPL_EXERCISES = [
-    ex(10, "Hip Thrust", "Mông, Đùi sau", "20–30 kg (thanh đòn)", "Có thể thay bằng tạ đơn 15 kg đặt lên hông."),
-    ex(11, "Romanian Deadlift (RDL)", "Đùi sau, Mông, Lưng dưới", "15–20 kg tổng cộng"),
-    ex(12, "Bulgarian Split Squat", "Đùi trước, Mông", "Bodyweight → 3–5 kg mỗi tay", "Đổ người hơi về trước."),
-    ex(13, "Lying Leg Curl", "Đùi sau", "10–15 kg"),
-    ex(14, "Cable Kickback", "Mông", "5–7,5 kg cáp"),
-    ex(15, "Glute Bridge", "Mông, Đùi sau"),
-    ex(16, "Goblet Squat", "Đùi trước, Mông", "10–15 kg"),
-    ex(17, "Leg Press", "Đùi trước, Mông", "30–40 kg"),
-    ex(18, "Hip Abduction", "Mông nhỡ (mông bên), Hông", "15–20 kg", "Giữ 1 giây ở điểm mở rộng nhất."),
-    ex(19, "Leg Extension", "Đùi trước", "10–15 kg"),
-    ex(20, "Plank", "Core (Bụng)"),
-  ];
-  const MONDAY = "2026-11-09";
-  const WEDNESDAY = "2026-11-11";
-  const THURSDAY = "2026-11-12";
-  const SUNDAY = "2026-11-15";
 
-  const setup = (today: string) => {
+  it("sửa hiệp khi lệnh thêm còn đang chạy → lệnh sửa xếp hàng sau, dùng đúng id vừa được tạo", async () => {
+    const pending = deferred<Awaited<ReturnType<typeof actions.addWorkoutSet>>>();
+    actions.addWorkoutSet.mockImplementationOnce(() => pending.promise);
+    const { user } = setup();
+    await startToday(user);
+    const card = mainCard("Romanian Deadlift (RDL)");
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    await user.type(within(card).getByLabelText("Tạ (kg) hiệp 1"), "20");
+    await user.tab();
+    expect(actions.updateWorkoutSet).not.toHaveBeenCalled(); // còn chờ lệnh thêm
+
+    await act(async () =>
+      pending.resolve({
+        ok: true,
+        data: {
+          logId: LOG_ID,
+          set: { id: 77, workoutLogId: LOG_ID, exerciseId: 11, phase: "main", setNumber: 1, reps: 10, weight: null, durationSec: null, completed: false },
+        },
+      }),
+    );
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 77, reps: 10, weight: 20 }));
+  });
+
+  it("gõ rồi dừng (không rời ô) → tự lưu sau ~0,7 giây; ô sai → báo tại chỗ, không lưu", async () => {
+    const { user } = setup();
+    await startToday(user);
+    const card = mainCard("Hip Thrust");
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    await waitFor(() => expect(within(card).getByTestId("set-row")).toHaveAttribute("data-saved", "true"));
+
+    const reps = within(card).getByLabelText("Số rep hiệp 1");
+    await user.clear(reps);
+    await user.type(reps, "12");
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 100, reps: 12, weight: null }), { timeout: 1500 });
+
+    actions.updateWorkoutSet.mockClear();
+    await user.clear(reps);
+    await user.type(reps, "0");
+    await user.tab();
+    expect(within(card).getByRole("alert")).toHaveTextContent("Hiệp 1: Số rep phải là số nguyên từ 1 đến 1000. (chưa lưu)");
+    await new Promise((r) => setTimeout(r, 800));
+    expect(actions.updateWorkoutSet).not.toHaveBeenCalled();
+  });
+
+  it("xoá hiệp: mất ngay + xoá trong DB; server lỗi → hiệp quay lại đúng chỗ, báo lỗi", async () => {
+    const { user } = setup();
+    await startToday(user);
+    const card = mainCard("Hip Thrust");
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    await waitFor(() => expect(within(card).getAllByTestId("set-row")[1]).toHaveAttribute("data-saved", "true"));
+
+    actions.deleteWorkoutSet.mockResolvedValueOnce({ ok: false, error: "Không tìm thấy hiệp tập." });
+    await user.click(within(card).getByRole("button", { name: "Xoá hiệp 1" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không tìm thấy hiệp tập.");
+    expect(within(card).getAllByTestId("set-row")).toHaveLength(2);
+    expect(actions.deleteWorkoutSet).toHaveBeenCalledWith(100);
+
+    await user.click(within(card).getByRole("button", { name: "Xoá hiệp 1" }));
+    await waitFor(() => expect(within(card).getAllByTestId("set-row")).toHaveLength(1));
+    expect(actions.deleteWorkoutSet).toHaveBeenLastCalledWith(100);
+  });
+
+  it("thêm hiệp thất bại → hiệp biến mất, báo lỗi", async () => {
+    actions.addWorkoutSet.mockResolvedValueOnce({ ok: false, error: "Bạn cần đăng nhập." });
+    const { user } = setup();
+    await startToday(user);
+    const card = mainCard("Hip Thrust");
+    await user.click(within(card).getByRole("button", { name: "+ Thêm hiệp" }));
+    await waitFor(() => expect(within(card).queryAllByTestId("set-row")).toHaveLength(0));
+    expect(status()).toHaveTextContent("Bạn cần đăng nhập.");
+  });
+
+  it("buổi đã lưu (tải lại trang) → dựng lại đúng hiệp / dòng đốt mỡ, sửa dùng id có sẵn", async () => {
     const user = userEvent.setup();
-    render(<WorkoutLogger exercises={TPL_EXERCISES} today={today} />);
-    return { user };
-  };
-  const cardNames = () =>
-    screen
-      .queryAllByRole("button", { name: /^Xem hướng dẫn / })
-      .map((b) => b.getAttribute("aria-label")!.replace("Xem hướng dẫn ", ""));
-  const card = (name: string) => screen.getByRole("button", { name: `Xem hướng dẫn ${name}` }).closest("section")!;
+    const sets = [
+      { id: 1, exerciseId: 10, phase: "main" as const, setNumber: 1, reps: 10, weight: 30, durationSec: null, completed: false },
+      { id: 2, exerciseId: 10, phase: "main" as const, setNumber: 2, reps: 8, weight: 32.5, durationSec: null, completed: false },
+      { id: 3, exerciseId: 31, phase: "finisher" as const, setNumber: 1, reps: null, weight: null, durationSec: 40, completed: true },
+    ];
+    render(<WorkoutLogger exercises={EXERCISES} today={MONDAY} initialLog={{ logId: LOG_ID, notes: "Mệt", sets }} />);
+    const card = mainCard("Hip Thrust");
+    expect(within(card).getByLabelText("Tạ (kg) hiệp 2")).toHaveValue("32,5");
+    expect(screen.getByRole("checkbox", { name: /Plank/ })).toBeChecked();
+    expect(screen.getByLabelText("Thời gian (giây) — Plank")).toHaveValue("40");
+    expect(screen.getByLabelText(/Ghi chú buổi tập/)).toHaveValue("Mệt");
 
-  it("không còn 3 nút 'Thêm nhanh' cũ", () => {
-    setup(MONDAY);
-    expect(screen.queryByRole("button", { name: /^Thêm nhanh/ })).not.toBeInTheDocument();
+    await user.clear(within(card).getByLabelText("Số rep hiệp 2"));
+    await user.type(within(card).getByLabelText("Số rep hiệp 2"), "9");
+    await user.tab();
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 2, reps: 9, weight: 32.5 }));
   });
 
-  it("Thứ 2 → gợi ý Lower Body 1, hiện danh sách bài + tạ gợi ý", () => {
-    setup(MONDAY);
-    expect(screen.getByRole("heading", { name: "Gợi ý bài tập cho hôm nay (Thứ 2)" })).toBeInTheDocument();
-    const block = screen.getByRole("region", { name: /Gợi ý bài tập/ });
-    expect(within(block).getByText("Lower Body 1")).toBeInTheDocument();
-    expect(within(block).getByText("Cable Kickback")).toBeInTheDocument();
-    expect(within(block).getByText("20–30 kg (thanh đòn)")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bắt đầu bài tập hôm nay" })).toBeEnabled();
+  it("bỏ bài đã có hiệp → hỏi xác nhận → xoá mọi hiệp của bài trong DB; đổi bài → chuyển hiệp sang bài mới", async () => {
+    const sets = [{ id: 1, exerciseId: 11, phase: "main" as const, setNumber: 1, reps: 10, weight: 20, durationSec: null, completed: false }];
+    const user = userEvent.setup();
+    render(<WorkoutLogger exercises={EXERCISES} today={MONDAY} initialLog={{ logId: LOG_ID, notes: null, sets }} />);
+
+    // Đổi RDL → Good Morning (cùng nhóm Đùi sau, bài đốt mỡ không xuất hiện trong gợi ý)
+    await user.click(screen.getByRole("button", { name: "Thay thế Romanian Deadlift (RDL)" }));
+    expect(screen.queryByRole("button", { name: "Đổi sang Glute Bridge" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Đổi sang Good Morning" }));
+    await waitFor(() =>
+      expect(actions.changeWorkoutExercise).toHaveBeenCalledWith({ logId: LOG_ID, fromExerciseId: 11, toExerciseId: 13 }),
+    );
+
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    await user.click(screen.getByRole("button", { name: "Xoá bài Good Morning" }));
+    expect(confirm).toHaveBeenLastCalledWith("Bỏ bài Good Morning? 1 dòng đã ghi sẽ bị xoá.");
+    expect(actions.removeWorkoutExercise).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Xoá bài Good Morning" }));
+    await waitFor(() => expect(actions.removeWorkoutExercise).toHaveBeenCalledWith({ logId: LOG_ID, exerciseId: 13 }));
+    expect(screen.queryByRole("region", { name: "Good Morning" })).not.toBeInTheDocument();
   });
 
-  it("Bắt đầu bài tập hôm nay → load đúng bài theo thứ tự, kèm tạ gợi ý + tips trên form", async () => {
-    const { user } = setup(MONDAY);
-    await user.click(screen.getByRole("button", { name: "Bắt đầu bài tập hôm nay" }));
+  it("ghi chú tự lưu khi rời ô (chỉ khi có thay đổi)", async () => {
+    const { user } = setup();
+    const notes = screen.getByLabelText(/Ghi chú buổi tập/);
+    await user.click(notes);
+    await user.tab();
+    expect(actions.saveWorkoutNotes).not.toHaveBeenCalled();
+    await user.type(notes, "Nghỉ 2 phút giữa hiệp");
+    await user.tab();
+    await waitFor(() => expect(actions.saveWorkoutNotes).toHaveBeenCalledWith({ date: MONDAY, notes: "Nghỉ 2 phút giữa hiệp" }));
+  });
+});
 
-    expect(cardNames()).toEqual([
-      "Hip Thrust",
-      "Romanian Deadlift (RDL)",
-      "Bulgarian Split Squat",
-      "Lying Leg Curl",
-      "Cable Kickback",
-    ]);
-    expect(screen.getByRole("status")).toHaveTextContent("Đã thêm 5 bài từ Lower Body 1.");
-    expect(screen.getAllByLabelText("Số set")[0]).toHaveValue("3");
-    expect(screen.getByRole("button", { name: "✓ Đã thêm vào buổi tập" })).toBeDisabled();
+// ---------- Auto-save: Đốt mỡ cuối buổi ----------
 
-    const hip = card("Hip Thrust");
-    const hint = within(hip).getByText("20–30 kg (thanh đòn)");
-    expect(within(hip).getByText(/tạ đơn 15 kg đặt lên hông/)).toBeInTheDocument();
-    const form = within(hip).getByLabelText("Số set").closest("form")!;
-    expect(hint.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+describe("WorkoutLogger — auto-save Đốt Mỡ Cuối Buổi", () => {
+  it("tick hoàn thành → thêm dòng đốt mỡ (không tạ); bỏ tick → cập nhật đúng dòng; tiến độ đổi theo", async () => {
+    const { user } = setup();
+    await startToday(user);
+    const plank = screen.getByRole("checkbox", { name: /Plank/ });
+
+    await user.click(plank);
+    expect(plank).toBeChecked();
+    expect(screen.getByTestId("finisher-progress")).toHaveTextContent("Đã xong 1 / 4 bài");
+    await waitFor(() =>
+      expect(actions.addWorkoutSet).toHaveBeenCalledWith({ phase: "finisher", date: MONDAY, exerciseId: 31, completed: true, durationSec: null }),
+    );
+
+    await user.click(plank);
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 100, completed: false }));
+    expect(plank).not.toBeChecked();
+    expect(actions.addWorkoutSet).toHaveBeenCalledTimes(1); // không tạo dòng thứ 2
   });
 
-  it("bài thiếu trong DB được báo (Thứ 5 → Lower Body 2 thiếu Step-up)", async () => {
-    const { user } = setup(THURSDAY);
-    expect(screen.getByRole("heading", { name: "Gợi ý bài tập cho hôm nay (Thứ 5)" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Bắt đầu bài tập hôm nay" }));
-    expect(cardNames()).toEqual(["Goblet Squat", "Leg Press", "Hip Abduction", "Leg Extension"]);
-    expect(screen.getByRole("status")).toHaveTextContent("1 bài chưa có trong hệ thống");
+  it("tick 2 lần thật nhanh khi lệnh thêm chưa xong → lệnh thứ 2 thành cập nhật (không tạo trùng)", async () => {
+    const pending = deferred<Awaited<ReturnType<typeof actions.addWorkoutSet>>>();
+    actions.addWorkoutSet.mockImplementationOnce(() => pending.promise);
+    const { user } = setup();
+    await startToday(user);
+    const crunch = screen.getByRole("checkbox", { name: /Gập bụng/ });
+    await user.click(crunch);
+    await user.click(crunch);
+    await act(async () =>
+      pending.resolve({
+        ok: true,
+        data: {
+          logId: LOG_ID,
+          set: { id: 88, workoutLogId: LOG_ID, exerciseId: 32, phase: "finisher", setNumber: 1, reps: null, weight: null, durationSec: null, completed: true },
+        },
+      }),
+    );
+    await waitFor(() => expect(actions.updateWorkoutSet).toHaveBeenCalledWith({ id: 88, completed: false }));
+    expect(actions.addWorkoutSet).toHaveBeenCalledTimes(1);
   });
 
-  it("Thứ 4 → Active Rest / Yoga: không có nút bắt đầu, có link tới thư viện yoga", () => {
-    setup(WEDNESDAY);
-    expect(within(screen.getByRole("region", { name: /Gợi ý bài tập/ })).getByText("Active Rest / Yoga")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Bắt đầu bài tập/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Xem video giãn cơ/ })).toHaveAttribute("href", "#yoga-videos");
+  it("nhập thời gian → tự tick hoàn thành và lưu số giây; server lỗi → bỏ tick", async () => {
+    const { user } = setup();
+    await startToday(user);
+    await user.type(screen.getByLabelText("Thời gian (giây) — Vung tạ ấm"), "45");
+    await user.tab();
+    expect(screen.getByRole("checkbox", { name: /Vung tạ ấm/ })).toBeChecked();
+    await waitFor(() =>
+      expect(actions.addWorkoutSet).toHaveBeenCalledWith({ phase: "finisher", date: MONDAY, exerciseId: 30, completed: true, durationSec: 45 }),
+    );
+
+    actions.addWorkoutSet.mockResolvedValueOnce({ ok: false, error: "Mất kết nối" });
+    await user.click(screen.getByRole("checkbox", { name: /Nâng hông/ }));
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: /Nâng hông/ })).not.toBeChecked());
+    expect(finisherRow(/Nâng hông/)).toHaveAttribute("data-done", "false");
   });
+});
 
-  it("Chủ nhật → ngày nghỉ", () => {
-    setup(SUNDAY);
-    expect(screen.getByRole("heading", { name: "Gợi ý bài tập cho hôm nay (Chủ nhật)" })).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: /Gợi ý bài tập/ })).getByText("Nghỉ ngơi")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Bắt đầu bài tập/ })).not.toBeInTheDocument();
-  });
+// ---------- Modal hướng dẫn ----------
 
-  it("đổi ngày tập → gợi ý đổi theo thứ của ngày đó", async () => {
-    const { user } = setup(WEDNESDAY);
-    const dateInput = screen.getByLabelText("Ngày tập");
-    await user.clear(dateInput);
-    await user.type(dateInput, MONDAY);
-    expect(screen.getByRole("heading", { name: "Gợi ý bài tập cho Thứ 2, 09/11" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bắt đầu bài tập ngày này" })).toBeInTheDocument();
-  });
+describe("WorkoutLogger — hướng dẫn bài tập", () => {
+  it("bấm tên bài chính hoặc 'Cách tập' ở bài đốt mỡ → mở modal hướng dẫn", async () => {
+    const { user } = setup();
+    await startToday(user);
+    await user.click(screen.getByRole("button", { name: "Xem hướng dẫn Romanian Deadlift (RDL)" }));
+    const dialog = screen.getByRole("dialog", { name: "Romanian Deadlift (RDL)" });
+    expect(within(dialog).getByText("Đẩy hông ra sau.")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Đóng" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
-  it("lịch tuần cá nhân (prop schedule) được ưu tiên hơn lịch mặc định", () => {
-    const user = ["rest", "upper-b", "upper-a", "active-rest", "lower-2", "lower-1", "rest"];
-    render(<WorkoutLogger exercises={TPL_EXERCISES} today={MONDAY} schedule={user} />);
-    expect(within(screen.getByRole("region", { name: /Gợi ý bài tập/ })).getByText("Upper Body B")).toBeInTheDocument();
-  });
-
-  it("Xem lịch cả tuần → timeline Thứ 2 → Chủ nhật; chọn 'Tập buổi này' để load buổi khác", async () => {
-    const { user } = setup(SUNDAY);
-    await user.click(screen.getByRole("button", { name: /Xem lịch cả tuần/ }));
-
-    const dialog = screen.getByRole("dialog", { name: "Lịch tập cả tuần" });
-    const days = within(dialog).getAllByRole("listitem");
-    expect(days.map((d) => d.textContent?.match(/^(Thứ \d|Chủ nhật)/)?.[0])).toEqual([
-      "Thứ 2",
-      "Thứ 3",
-      "Thứ 4",
-      "Thứ 5",
-      "Thứ 6",
-      "Thứ 7",
-      "Chủ nhật",
-    ]);
-    expect(days[0]).toHaveTextContent("Lower Body 1");
-    expect(days[1]).toHaveTextContent("Upper Body A");
-    expect(days[2]).toHaveTextContent("Active Rest / Yoga");
-    expect(days[3]).toHaveTextContent("Lower Body 2");
-    expect(days[4]).toHaveTextContent("Upper Body B");
-    expect(days[6]).toHaveAttribute("aria-current", "date"); // Chủ nhật đang xem
-    // Ngày yoga / nghỉ không có nút tập
-    expect(within(days[2]).queryByRole("button")).not.toBeInTheDocument();
-
-    await user.click(within(dialog).getByRole("button", { name: "Tập buổi Lower Body 1 (Thứ 2)" }));
-    expect(dialog).not.toHaveAttribute("open");
-    expect(cardNames()).toHaveLength(5);
-  });
-
-  it("Swap: chỉ gợi ý bài cùng nhóm cơ chính chưa có trong buổi tập; chọn → đổi bài ngay, giữ set đã nhập", async () => {
-    const { user } = setup(MONDAY);
-    await user.click(screen.getByRole("button", { name: "Bắt đầu bài tập hôm nay" }));
-
-    // Nhập 2 set cho Hip Thrust trước khi đổi
-    const hip = card("Hip Thrust");
-    await user.clear(within(hip).getByLabelText("Số set"));
-    await user.type(within(hip).getByLabelText("Số set"), "2");
-    await user.type(within(hip).getByLabelText("Tạ (kg)"), "25");
-    await user.click(within(hip).getByRole("button", { name: "+ Add Set" }));
-
-    const swapBtn = within(hip).getByRole("button", { name: "Thay thế Hip Thrust" });
-    expect(swapBtn).toHaveAttribute("aria-expanded", "false");
-    await user.click(swapBtn);
-    expect(swapBtn).toHaveAttribute("aria-expanded", "true");
-
-    // Nhóm chính "Mông": Cable Kickback đã có trong buổi → chỉ còn Glute Bridge
-    const options = within(hip).getAllByRole("button", { name: /^Đổi sang / });
-    expect(options.map((o) => o.getAttribute("aria-label"))).toEqual(["Đổi sang Glute Bridge"]);
-
-    await user.click(options[0]);
-    expect(cardNames()).toEqual([
-      "Glute Bridge",
-      "Romanian Deadlift (RDL)",
-      "Bulgarian Split Squat",
-      "Lying Leg Curl",
-      "Cable Kickback",
-    ]);
-    const bridge = card("Glute Bridge");
-    expect(within(bridge).getAllByText("10 rep × 25 kg")).toHaveLength(2);
-    expect(within(bridge).getByLabelText("Tạ (kg)")).toHaveValue(""); // mức tạ nháp được xoá
-    expect(within(bridge).queryByRole("button", { name: /^Đổi sang / })).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Đã thay Hip Thrust bằng Glute Bridge.");
-
-    // Lưu: set gắn với bài mới
-    actions.createWorkoutLog.mockResolvedValue({ ok: true, data: { id: 7 } } as never);
-    actions.saveWorkoutSets.mockResolvedValue({ ok: true, data: [{}, {}] } as never);
-    await user.click(screen.getByRole("button", { name: /Save Workout/ }));
-    await waitFor(() => expect(actions.saveWorkoutSets).toHaveBeenCalled());
-    expect(actions.saveWorkoutSets.mock.calls.at(-1)![0]).toEqual({
-      workoutLogId: 7,
-      sets: [
-        { exerciseId: 15, setNumber: 1, reps: 10, weight: 25 },
-        { exerciseId: 15, setNumber: 2, reps: 10, weight: 25 },
-      ],
-    });
-  });
-
-  it("Swap: không có bài phù hợp → báo rõ", async () => {
-    const { user } = setup(SUNDAY);
-    await user.selectOptions(screen.getByLabelText("Thêm bài tập gym"), "Leg Extension");
-    await user.click(screen.getByRole("button", { name: "Thêm" }));
-    await user.selectOptions(screen.getByLabelText("Thêm bài tập gym"), "Hip Abduction");
-    await user.click(screen.getByRole("button", { name: "Thêm" }));
-    await user.click(screen.getByRole("button", { name: "Thay thế Hip Abduction" }));
-    expect(screen.getByText("Chưa có bài thay thế phù hợp.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Xem hướng dẫn Kettlebell Swing" }));
+    expect(screen.getByRole("dialog", { name: "Kettlebell Swing" })).toBeInTheDocument();
   });
 });

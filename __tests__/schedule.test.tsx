@@ -4,11 +4,14 @@ import userEvent from "@testing-library/user-event";
 
 vi.mock("@/actions/schedule", () => ({ updateWeeklySchedule: vi.fn() }));
 vi.mock("@/actions/workout-logs", () => ({
-  createWorkoutLog: vi.fn(),
-  updateWorkoutLog: vi.fn(),
-  deleteWorkoutLog: vi.fn(),
-  saveWorkoutSets: vi.fn(),
+  addWorkoutSet: vi.fn(),
+  updateWorkoutSet: vi.fn(),
+  deleteWorkoutSet: vi.fn(),
+  changeWorkoutExercise: vi.fn(),
+  removeWorkoutExercise: vi.fn(),
+  saveWorkoutNotes: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 import { updateWeeklySchedule } from "@/actions/schedule";
 import { WorkoutLogger, type GymExercise } from "@/components/WorkoutLogger";
@@ -151,7 +154,7 @@ describe("WorkoutLogger — cài đặt lịch & tự nạp bài", () => {
     await user.click(within(dialog).getByRole("button", { name: "Lưu lịch tuần" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cài đặt lịch tuần" })).not.toBeInTheDocument());
-    expect(screen.getByRole("status")).toHaveTextContent("Đã lưu lịch tuần");
+    expect(screen.getByText("Đã lưu lịch tuần. Gợi ý đã cập nhật theo lịch mới.")).toHaveAttribute("role", "status");
   });
 
   it("'⚙️ Chỉnh lịch' trong modal Lịch cả tuần chuyển sang modal Cài đặt", async () => {
@@ -178,7 +181,8 @@ describe("WorkoutLogger — cài đặt lịch & tự nạp bài", () => {
 
     expect(exerciseCards()).toHaveLength(LOWER_2.length);
     for (const e of LOWER_2) expect(screen.getByRole("button", { name: `Thay thế ${e.name}` })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(`Đã thêm ${LOWER_2.length} bài từ Lower Body 2.`);
+    // Fixture chỉ có bài chính → 4 bài đốt mỡ của mẫu được báo là chưa có trong hệ thống
+    expect(screen.getByText(/^Đã thêm \d+ bài từ Lower Body 2\./)).toHaveTextContent(`Đã thêm ${LOWER_2.length} bài từ Lower Body 2.`);
     expect(screen.getByRole("button", { name: "✓ Đã thêm vào buổi tập" })).toBeDisabled();
     expect(window.location.search).toBe("");
   });
@@ -203,7 +207,8 @@ describe("TodayWorkoutWidget (Tổng quan)", () => {
     expect(screen.getByText("Thứ 5")).toBeInTheDocument();
     expect(screen.getByTestId("today-template")).toHaveTextContent("Lower Body 2");
     expect(screen.getByText("Goblet Squat")).toBeInTheDocument();
-    expect(screen.getByText("+1 bài nữa")).toBeInTheDocument(); // 5 bài, hiện 4
+    expect(screen.queryByText(/bài nữa/)).not.toBeInTheDocument(); // 4 bài chính, hiện đủ
+    expect(screen.getByText(/\+ Đốt Mỡ Cuối Buổi: Vung tạ ấm · Bật nhảy dang tay chân · Bọ chết · Nâng hông/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Bắt đầu tập" })).toHaveAttribute("href", "/workouts?start=today");
     expect(screen.getByText(/Ngày mai/)).toHaveTextContent("Ngày mai: Upper Body B");
     expect(screen.getByRole("link", { name: /Đổi lịch/ })).toHaveAttribute("href", "/workouts?schedule=edit");

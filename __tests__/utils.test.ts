@@ -9,7 +9,7 @@ import {
   type ActivityLevel,
 } from "@/lib/energy";
 import { currentYearInAppTz, formatDayMonth, todayInAppTz, weekdayOf } from "@/lib/date";
-import {
+import { FINISHER_INFO,
   DEFAULT_WEEKLY_SCHEDULE,
   WEEK_ORDER,
   WORKOUT_TEMPLATES,
@@ -123,6 +123,28 @@ describe("WORKOUT_TEMPLATES", () => {
     },
   );
 
+  it.each(WORKOUT_TEMPLATES.map((t) => [t.name, t] as const))(
+    "%s: chia 2 giai đoạn — bài chính có phase main, chuỗi đốt mỡ 4 bài phase finisher (có tên Việt + mục tiêu)",
+    (_, t) => {
+      const phaseOf = (n: string) => (byName.get(n) as { phase?: string } | undefined)?.phase ?? "main";
+      if (t.kind !== "gym") return expect(t.finisherNames).toEqual([]);
+      expect(t.exerciseNames.length).toBeGreaterThanOrEqual(3);
+      expect(t.finisherNames).toHaveLength(4);
+      for (const n of t.exerciseNames) expect(phaseOf(n), n).toBe("main");
+      for (const n of t.finisherNames) {
+        expect(byName.get(n), `thiếu "${n}" trong exercises.json`).toBeDefined();
+        expect(phaseOf(n), n).toBe("finisher");
+        expect(FINISHER_INFO[n], n).toBeDefined();
+      }
+    },
+  );
+
+  it("Lower Body 1 đúng yêu cầu: Hip Thrust · RDL · Bulgarian | Vung tạ ấm · Plank · Gập bụng · Nâng hông", () => {
+    const t = WORKOUT_TEMPLATES.find((x) => x.id === "lower-1")!;
+    expect(t.exerciseNames).toEqual(["Hip Thrust", "Romanian Deadlift (RDL)", "Bulgarian Split Squat"]);
+    expect(t.finisherNames.map((n) => FINISHER_INFO[n].label)).toEqual(["Vung tạ ấm", "Plank", "Gập bụng", "Nâng hông"]);
+  });
+
   it("id template là duy nhất", () => {
     expect(new Set(WORKOUT_TEMPLATES.map((t) => t.id)).size).toBe(WORKOUT_TEMPLATES.length);
   });
@@ -219,11 +241,26 @@ describe("findSwapAlternatives", () => {
   });
 
   it("không có bài cùng nhóm chính → dùng bài tác động phụ", () => {
-    expect(names("Plank")).toEqual(["Barbell Squat", "Push-up"]);
+    const pool = [
+      { id: 1, name: "A", category: "gym", muscleGroup: "Bắp chân" },
+      { id: 2, name: "B", category: "gym", muscleGroup: "Đùi trước, Bắp chân" },
+      { id: 3, name: "C", category: "gym", muscleGroup: "Ngực" },
+    ];
+    expect(findSwapAlternatives(pool[0], pool).map((e) => e.name)).toEqual(["B"]);
+  });
+
+  it("chỉ gợi ý bài cùng giai đoạn: bài chính ↔ bài chính, đốt mỡ ↔ đốt mỡ", () => {
+    // Plank là bài đốt mỡ → chỉ gợi ý bài đốt mỡ nhóm Core, không gợi ý bài tạ (Barbell Squat / Push-up)
+    expect(names("Plank")).toEqual(["Crunch", "Dead Bug", "Mountain Climber", "Russian Twist"]);
+    const hip = names("Hip Thrust", ["Cable Kickback"]);
+    expect(hip.length).toBeGreaterThan(0);
+    expect(hip).not.toContain("Glute Bridge"); // bài đốt mỡ
+    expect(hip).not.toContain("Kettlebell Swing");
   });
 
   it("loại bài đã có trong buổi tập; không lấy yoga", () => {
-    expect(names("Hip Thrust", ["Cable Kickback"])).toEqual(["Glute Bridge"]);
+    expect(names("Hip Thrust")).toEqual(["Cable Kickback"]);
+    expect(names("Hip Thrust", ["Cable Kickback"])).not.toContain("Cable Kickback");
     const yoga = { id: 999, name: "Pigeon Stretch", category: "yoga", muscleGroup: "Mông, Hông" };
     expect(findSwapAlternatives(get("Hip Thrust"), [...gym, yoga]).map((e) => e.name)).not.toContain(
       "Pigeon Stretch",
@@ -232,6 +269,6 @@ describe("findSwapAlternatives", () => {
 
   it("mọi bài trong lịch tập gym đều có ít nhất 1 bài thay thế", () => {
     for (const t of WORKOUT_TEMPLATES.filter((t) => t.kind === "gym"))
-      for (const n of t.exerciseNames) expect(names(n), n).not.toHaveLength(0);
+      for (const n of [...t.exerciseNames, ...t.finisherNames]) expect(names(n), n).not.toHaveLength(0);
   });
 });

@@ -17,62 +17,106 @@ async function currentUserId(page: Page): Promise<string> {
   return page.evaluate(() => window.Clerk.user!.id);
 }
 
-test.describe("Nhật ký tập luyện → workout_logs / workout_sets", () => {
+test.describe("Nhật ký tập luyện → workout_logs / workout_sets (tự động lưu)", () => {
   const tag = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  test.afterAll(async () => {
-    const sql = branchSql();
-    await sql`DELETE FROM workout_logs WHERE notes = ${tag}`; // set bị xoá theo (ON DELETE CASCADE)
-  });
-
-  test("log 1 bài tập, lưu, rồi cập nhật — DB phản ánh đúng", async ({ page }) => {
+  test("không có nút Save: thêm / sửa / xoá hiệp, tick đốt mỡ, ghi chú → DB cập nhật ngay; reload dựng lại đúng", async ({ page }, testInfo) => {
     await page.goto("/workouts");
     const userId = await currentUserId(page);
-
-    // Chọn bài + nhập 3 set × 8 rep × 42,5 kg (dấu phẩy kiểu VN)
-    await page.getByLabel("Thêm bài tập gym").selectOption({ label: "Bench Press" });
-    await page.getByRole("button", { name: "Thêm", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Xem hướng dẫn Bench Press" })).toBeVisible();
-
-    await page.getByLabel("Số set").fill("3");
-    await page.getByLabel("Số rep").fill("8");
-    await page.getByLabel("Tạ (kg)").fill("42,5");
-    await page.getByRole("button", { name: "+ Add Set" }).click();
-
-    const setRows = page.getByRole("listitem").filter({ hasText: "8 rep × 42.5 kg" });
-    await expect(setRows).toHaveCount(3);
-
-    await page.getByLabel("Ghi chú (tuỳ chọn)").fill(tag);
-    await page.getByRole("button", { name: "Save Workout · 3 set" }).click();
-
-    await expect(page.getByRole("status")).toHaveText("Đã lưu 3 set (1 bài tập).");
-    await expect(page.getByRole("button", { name: "Cập nhật · 3 set" })).toBeVisible();
-
-    // Kiểm tra DB thật
     const sql = branchSql();
-    const rows = await sql`
-      SELECT wl.id, wl.user_id, wl.date::text AS date, e.name, ws.set_number, ws.reps, ws.weight
+    await sql`DELETE FROM workout_logs WHERE user_id = ${userId} AND date = ${today()}`;
+    await page.reload();
+    await expect(page.getByRole("button", { name: /Save Workout|Cập nhật ·/ })).toHaveCount(0);
+
+    /** Mọi set của buổi tập hôm nay (đọc thẳng Neon branch). */
+    const dbSets = () => sql`
+      SELECT e.name, ws.phase, ws.set_number, ws.reps, ws.weight, ws.duration_sec, ws.completed
       FROM workout_logs wl
       JOIN workout_sets ws ON ws.workout_log_id = wl.id
       JOIN exercises e ON e.id = ws.exercise_id
-      WHERE wl.notes = ${tag}
-      ORDER BY ws.set_number`;
-    expect(rows).toHaveLength(3);
-    expect(new Set(rows.map((r) => r.id)).size).toBe(1);
-    for (const [i, r] of rows.entries()) {
-      expect(r).toMatchObject({ user_id: userId, date: today(), name: "Bench Press", set_number: i + 1, reps: 8, weight: 42.5 });
-    }
+      WHERE wl.user_id = ${userId} AND wl.date = ${today()}
+      ORDER BY ws.id`;
+    const status = page.getByTestId("autosave-status");
 
-    // Xoá set 3 → "Cập nhật" → saveWorkoutSets thay toàn bộ danh sách set, không tạo log mới
-    await page.getByRole("button", { name: "Xoá set 3" }).click();
-    await page.getByRole("button", { name: "Cập nhật · 2 set" }).click();
-    await expect(page.getByRole("status")).toHaveText("Đã lưu 2 set (1 bài tập).");
+    // ----- BÀI TẬP CHÍNH: Bench Press -----
+    await page.getByLabel("Thêm bài tập").selectOption({ label: "Bench Press" });
+    await page.getByRole("button", { name: "Thêm", exact: true }).click();
+    const card = page.getByRole("region", { name: "Bench Press" });
+    await expect(card).toHaveAttribute("data-phase", "main");
 
-    const after = await sql`
-      SELECT count(DISTINCT wl.id)::int AS logs, count(ws.id)::int AS sets
-      FROM workout_logs wl LEFT JOIN workout_sets ws ON ws.workout_log_id = wl.id
-      WHERE wl.notes = ${tag}`;
-    expect(after[0]).toEqual({ logs: 1, sets: 2 });
+    // Hiệp 1: bấm "+ Thêm hiệp" → ghi DB ngay (mặc định 10 rep, BW); sửa thành 8 rep × 42,5 kg rồi rời ô
+    await card.getByRole("button", { name: "+ Thêm hiệp" }).click();
+    await card.getByLabel("Số rep hiệp 1").fill("8");
+    await card.getByLabel("Tạ (kg) hiệp 1").fill("42,5");
+    await card.getByLabel("Tạ (kg) hiệp 1").blur();
+    // Hiệp 2, 3 chép số của hiệp trước
+    await card.getByRole("button", { name: "+ Thêm hiệp" }).click();
+    await card.getByRole("button", { name: "+ Thêm hiệp" }).click();
+    await expect(card.getByLabel("Tạ (kg) hiệp 3")).toHaveValue("42,5");
+    await expect(status).toHaveText(/Đã lưu lúc/);
+    await expect.poll(dbSets).toEqual(
+      [1, 2, 3].map((n) => ({ name: "Bench Press", phase: "main", set_number: n, reps: 8, weight: 42.5, duration_sec: null, completed: false })),
+    );
+    // Chỉ 1 buổi tập cho hôm nay dù ghi nhiều lần
+    expect((await sql`SELECT count(*)::int AS n FROM workout_logs WHERE user_id = ${userId} AND date = ${today()}`)[0].n).toBe(1);
+
+    // Xoá hiệp 3 → DB còn 2
+    await card.getByRole("button", { name: "Xoá hiệp 3" }).click();
+    await expect.poll(async () => (await dbSets()).length).toBe(2);
+
+    // Gõ kg hiệp 1 rồi DỪNG (không rời ô) → tự lưu sau ~0,7 giây
+    await card.getByLabel("Tạ (kg) hiệp 1").fill("45");
+    await expect.poll(async () => (await dbSets())[0].weight, { timeout: 5000 }).toBe(45);
+
+    // ----- ĐỐT MỠ CUỐI BUỔI: Plank -----
+    await page.getByLabel("Thêm bài tập").selectOption({ label: "Plank" });
+    await page.getByRole("button", { name: "Thêm", exact: true }).click();
+    const plank = page.getByRole("checkbox", { name: /Plank/ });
+    await plank.check();
+    await expect.poll(async () => (await dbSets()).find((r) => r.name === "Plank")).toMatchObject({
+      phase: "finisher",
+      reps: null,
+      weight: null,
+      completed: true,
+    });
+    await page.getByLabel("Thời gian (giây) — Plank").fill("45");
+    await page.getByLabel("Thời gian (giây) — Plank").blur();
+    await expect.poll(async () => (await dbSets()).find((r) => r.name === "Plank")?.duration_sec).toBe(45);
+
+    // Ghi chú lưu khi rời ô
+    await page.getByLabel(/Ghi chú buổi tập/).fill(tag);
+    await page.getByLabel(/Ghi chú buổi tập/).blur();
+    await expect
+      .poll(async () => (await sql`SELECT notes FROM workout_logs WHERE user_id = ${userId} AND date = ${today()}`)[0]?.notes)
+      .toBe(tag);
+
+    // ----- Reload: buổi tập dựng lại từ DB -----
+    await page.reload();
+    const after = page.getByRole("region", { name: "Bench Press" });
+    await expect(after.getByTestId("set-row")).toHaveCount(2);
+    await expect(after.getByLabel("Tạ (kg) hiệp 1")).toHaveValue("45");
+    await expect(after.getByLabel("Tạ (kg) hiệp 2")).toHaveValue("42,5");
+    await expect(page.getByRole("checkbox", { name: /Plank/ })).toBeChecked();
+    await expect(page.getByLabel("Thời gian (giây) — Plank")).toHaveValue("45");
+    await expect(page.getByLabel(/Ghi chú buổi tập/)).toHaveValue(tag);
+    // Ảnh chụp để kiểm tra bằng mắt bố cục thẻ bài chính + khu đốt mỡ trên màn hình hẹp
+    await after.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath("workout-main.png") });
+    await page.getByRole("heading", { name: "Đốt mỡ cuối buổi (10-15 Phút)" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.screenshot({ path: testInfo.outputPath("workout-finisher.png") });
+
+    // Bỏ tick sau reload → cập nhật đúng dòng cũ (không tạo dòng mới)
+    await page.getByRole("checkbox", { name: /Plank/ }).uncheck();
+    await expect.poll(async () => (await dbSets()).filter((r) => r.name === "Plank")).toEqual([
+      expect.objectContaining({ completed: false, duration_sec: 45 }),
+    ]);
+
+    // Bỏ bài (có xác nhận) → mọi hiệp của bài bị xoá khỏi DB
+    page.once("dialog", (d) => d.accept());
+    await after.getByRole("button", { name: "Xoá bài Bench Press" }).click();
+    await expect.poll(async () => (await dbSets()).filter((r) => r.name === "Bench Press")).toHaveLength(0);
+
+    await sql`DELETE FROM workout_logs WHERE user_id = ${userId} AND date = ${today()}`;
   });
 });
 
@@ -365,7 +409,7 @@ test.describe("Tập luyện → favorite_videos (video giãn cơ yêu thích)",
   });
 });
 
-test.describe("Hồ sơ → Từ điển món ăn của tôi (custom_foods: xem / sửa / xoá)", () => {
+test.describe("Hồ sơ → /profile/foods: Từ điển món ăn của tôi (custom_foods: xem / sửa / xoá)", () => {
   const tag = `Từ điển E2E ${Date.now().toString(36)}`;
 
   test.afterEach(async ({ page }) => {
@@ -374,7 +418,7 @@ test.describe("Hồ sơ → Từ điển món ăn của tôi (custom_foods: xem 
   });
 
   test("hiển thị món đã lưu → sửa (điền sẵn) → DB cập nhật → xoá có xác nhận → DB mất dòng", async ({ page }) => {
-    await page.goto("/profile");
+    await page.goto("/profile/foods");
     const userId = await currentUserId(page);
     const nameA = `${tag} Bún chả`;
     const nameB = `${tag} Cơm tấm`;
@@ -440,5 +484,108 @@ test.describe("Hồ sơ → Từ điển món ăn của tôi (custom_foods: xem 
     await page.reload();
     await expect(page.getByRole("region", { name: "Từ điển món ăn của tôi" }).getByText(renamed)).toBeVisible();
     await expect(page.getByText(nameB)).toHaveCount(0);
+  });
+});
+
+/** Ngày theo giờ VN, lùi `n` ngày so với hôm nay. */
+const daysAgo = (n: number) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(Date.now() - n * 86_400_000));
+
+// Cùng ghi weight_logs / users.weight của user E2E → chạy tuần tự
+test.describe.serial("Hồ sơ → weight_logs (biểu đồ cân nặng) + theme giao diện", () => {
+  test("chưa có dữ liệu → nhập cân nặng ban đầu → cập nhật hôm nay → DB + users.weight + đường biểu đồ", async ({ page }) => {
+    await page.goto("/profile");
+    const userId = await currentUserId(page);
+    await branchSql()`DELETE FROM weight_logs WHERE user_id = ${userId}`;
+    await page.reload();
+
+    const card = page.getByRole("region", { name: "Cân nặng" });
+    await expect(card).toContainText("Chưa có dữ liệu cân nặng");
+
+    // 1) Điểm neo: 64,5 kg cách đây 7 ngày
+    await card.getByRole("button", { name: "Nhập cân nặng ban đầu" }).click();
+    const baseline = page.getByRole("dialog", { name: "Cân nặng ban đầu" });
+    await baseline.getByLabel("Cân nặng (kg)").fill("64,5");
+    await baseline.getByLabel("Ngày cân").fill(daysAgo(7));
+    await baseline.getByRole("button", { name: "Lưu & bắt đầu theo dõi" }).click();
+    await expect(baseline).toBeHidden();
+    await expect(card.getByTestId("weight-current")).toHaveText("64,5");
+
+    // 2) Hôm nay: 63,2 kg → đường xu hướng + thay đổi so với điểm neo
+    await card.getByRole("button", { name: "Cập nhật cân nặng hôm nay" }).click();
+    const update = page.getByRole("dialog", { name: "Cập nhật cân nặng" });
+    await expect(update.getByLabel("Cân nặng (kg)")).toHaveValue("64,5"); // điền sẵn số gần nhất
+    await update.getByLabel("Cân nặng (kg)").fill("63,2");
+    await update.getByRole("button", { name: "Lưu cân nặng" }).click();
+    await expect(update).toBeHidden();
+    await expect(card.getByTestId("weight-current")).toHaveText("63,2");
+    await expect(card.getByTestId("weight-change")).toContainText("−1,3 kg từ 64,5 kg");
+    await expect(card.getByTestId("weight-line")).toBeVisible();
+    await expect(card.getByRole("button", { name: "Sửa cân nặng hôm nay" })).toBeVisible();
+
+    expect(
+      await branchSql()`SELECT date::text AS date, weight_kg FROM weight_logs WHERE user_id = ${userId} ORDER BY date`,
+    ).toEqual([
+      { date: daysAgo(7), weight_kg: 64.5 },
+      { date: daysAgo(0), weight_kg: 63.2 },
+    ]);
+    // Cân nặng mới nhất đồng bộ vào hồ sơ
+    expect((await branchSql()`SELECT weight FROM users WHERE id = ${userId}`)[0].weight).toBe(63.2);
+
+    // Chạm vào biểu đồ → crosshair + tooltip của lần cân gần nhất
+    const chart = card.getByRole("group", { name: "Biểu đồ cân nặng" });
+    const box = (await chart.boundingBox())!;
+    await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2);
+    await expect(card.getByTestId("weight-tooltip")).toContainText("63,2 kg");
+
+    // Reload: Server Component đọc lại từ DB
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Cân nặng" }).getByTestId("weight-current")).toHaveText("63,2");
+  });
+
+  test("đổi theme ở Cài đặt giao diện → màu thật của trang đổi, lưu qua reload và các trang khác; chụp 3 theme", async ({ page }, testInfo) => {
+    const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+    await page.goto("/profile/appearance");
+    await expect(page.getByRole("radio", { name: /^Lửa/ })).toHaveAttribute("aria-checked", "true");
+    await expect.poll(bodyBg).toBe("rgb(29, 15, 12)");
+
+    await page.getByRole("radio", { name: /^Biển/ }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "cool");
+    await expect.poll(bodyBg).toBe("rgb(30, 56, 66)"); // chờ transition 300 ms
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#1e3842");
+
+    // Reload: script trong <head> áp theme đã lưu trước khi vẽ
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "cool");
+    await expect(page.getByRole("radio", { name: /^Biển/ })).toHaveAttribute("aria-checked", "true");
+
+    // Trang khác dùng chung token: card ở Tổng quan mang màu card của theme Biển
+    await page.goto("/");
+    await expect
+      .poll(() => page.getByRole("region", { name: "Thói quen hôm nay" }).evaluate((el) => getComputedStyle(el).backgroundColor))
+      .toBe("rgb(41, 92, 105)");
+
+    // Ảnh chụp để kiểm tra bằng mắt (test-results/…)
+    for (const theme of ["warm", "cool", "vibrant"] as const) {
+      await page.evaluate((t) => localStorage.setItem("slimfit-theme", t), theme);
+      for (const [name, path] of [
+        ["tong-quan", "/"],
+        ["ho-so", "/profile"],
+        ["giao-dien", "/profile/appearance"],
+        ["tap-luyen", "/workouts"],
+      ] as const) {
+        await page.goto(path);
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await page.waitForLoadState("networkidle");
+        await page.screenshot({ path: testInfo.outputPath(`${theme}-${name}.png`), fullPage: true });
+      }
+    }
+    // Mở modal Thêm món ở theme cuối (Neon) để xem form + dropdown
+    await page.goto("/");
+    await page.getByRole("button", { name: "Thêm món vào bữa Sáng" }).click();
+    await page.getByRole("combobox", { name: "Tìm món ăn" }).fill("uc ga");
+    await page.waitForTimeout(500); // chờ animation mở bottom sheet (300 ms) để ảnh không bị mờ giữa chừng
+    await page.screenshot({ path: testInfo.outputPath("vibrant-them-mon.png") });
   });
 });

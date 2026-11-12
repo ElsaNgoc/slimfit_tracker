@@ -3,7 +3,7 @@
  * muscle_group là chuỗi "Nhóm chính, Nhóm phụ, …" — nhóm đầu tiên là nhóm cơ chính.
  */
 
-type SwapCandidate = { id: number; name: string; category: string; muscleGroup: string | null };
+type SwapCandidate = { id: number; name: string; category: string; muscleGroup: string | null; phase?: string };
 
 export const MAX_SWAP_OPTIONS = 6;
 
@@ -30,7 +30,8 @@ export function swapScore(current: SwapCandidate, candidate: SwapCandidate): num
 }
 
 /**
- * Danh sách bài thay thế cùng loại (gym/yoga), loại bỏ bài đang có trong buổi tập.
+ * Danh sách bài thay thế cùng loại (gym/yoga) VÀ cùng giai đoạn (bài chính ↔ bài chính, đốt mỡ ↔ đốt mỡ),
+ * loại bỏ bài đang có trong buổi tập.
  * Ưu tiên bài cùng nhóm cơ chính; chỉ khi không có mới dùng bài tác động phụ
  * (tránh gợi ý kiểu Lat Pulldown → Bicep Curl chỉ vì cùng có "Tay trước").
  */
@@ -41,7 +42,13 @@ export function findSwapAlternatives<T extends SwapCandidate>(
   limit = MAX_SWAP_OPTIONS,
 ): T[] {
   const scored = all
-    .filter((e) => e.id !== current.id && e.category === current.category && !excludeIds.has(e.id))
+    .filter(
+      (e) =>
+        e.id !== current.id &&
+        e.category === current.category &&
+        (e.phase ?? "main") === (current.phase ?? "main") &&
+        !excludeIds.has(e.id),
+    )
     .map((e) => ({ e, score: swapScore(current, e) }))
     .filter((x) => x.score > 0);
   const best = Math.max(0, ...scored.map((x) => x.score));
