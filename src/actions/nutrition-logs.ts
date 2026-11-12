@@ -7,12 +7,16 @@ import { customFoods, nutritionLogs, type CustomFood, type NutritionLog } from "
 import { requireUserId } from "@/lib/auth";
 import { toActionError, type ActionResult } from "@/lib/action-result";
 import { MEAL_TYPES } from "@/lib/nutrition";
-import { FOOD_GRAM_MAX, FOOD_NAME_MAX, foodNameKey, normalizeFoodName, per100FromPortion } from "@/lib/food-search";
+import {
+  FOOD_GRAM_MAX,
+  FOOD_NAME_MAX,
+  foodNameKey,
+  normalizeFoodName,
+  per100FromPortion,
+  per100Problem,
+} from "@/lib/food-search";
 
 const gram = z.number().min(0).max(2000);
-
-/** Ngưỡng hợp lý cho số liệu / 100 g: chất béo nguyên chất ~900 kcal, tổng P + C + F không quá 100 g. */
-const MAX_KCAL_PER_100G = 900;
 
 const addNutritionLogSchema = z
   .object({
@@ -38,8 +42,7 @@ const addNutritionLogSchema = z
       ctx.addIssue({ code: "custom", path: ["weightG"], message: "Nhập khối lượng (gram) để lưu vào từ điển." });
       return;
     }
-    const per100 = per100FromPortion(d, d.weightG);
-    if (per100.calories > MAX_KCAL_PER_100G || per100.proteinG + per100.carbsG + per100.fatG > 100.5) {
+    if (per100Problem(per100FromPortion(d, d.weightG))) {
       ctx.addIssue({
         code: "custom",
         path: ["weightG"],

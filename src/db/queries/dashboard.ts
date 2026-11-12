@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { customFoods, dailyLogs, habitLogs, habits, nutritionLogs, users } from "@/db/schema";
+import { customFoodColumns } from "./custom-foods";
 
 /**
  * Dữ liệu cho Dashboard của ngày `date`: hồ sơ user, nhật ký ngày, bản ghi dinh dưỡng,
@@ -28,14 +29,7 @@ export async function getDashboardData(userId: string, date: string) {
       .where(eq(habits.userId, userId))
       .orderBy(asc(habits.createdAt), asc(habits.id)),
     db
-      .select({
-        id: customFoods.id,
-        name: customFoods.name,
-        calories: customFoods.calories,
-        proteinG: customFoods.proteinG,
-        carbsG: customFoods.carbsG,
-        fatG: customFoods.fatG,
-      })
+      .select(customFoodColumns)
       .from(customFoods)
       .where(eq(customFoods.userId, userId))
       .orderBy(desc(customFoods.createdAt), desc(customFoods.id)),

@@ -146,6 +146,21 @@ export function searchFoods(
     .map((r) => r.item);
 }
 
+/** Chất béo nguyên chất ~900 kcal / 100 g — cao hơn là số liệu sai. */
+export const MAX_KCAL_PER_100G = 900;
+export const MAX_MACRO_PER_100G = 100;
+
+/**
+ * Kiểm tra số liệu / 100 g có hợp lý không (dùng chung server + client).
+ * null = hợp lệ; ngược lại là thông báo lỗi tiếng Việt.
+ */
+export function per100Problem(n: FoodNutrients): string | null {
+  if (n.calories > MAX_KCAL_PER_100G) return `Calo / 100 g không thể vượt ${MAX_KCAL_PER_100G} kcal.`;
+  // Cho dư 0,5 g vì làm tròn 1 chữ số thập phân từng macro
+  if (n.proteinG + n.carbsG + n.fatG > MAX_MACRO_PER_100G + 0.5) return "Tổng Protein + Carbs + Fat không thể vượt 100 g / 100 g.";
+  return null;
+}
+
 /** Quy số liệu của 1 phần ăn (`grams` gram) về mốc 100 g để lưu vào từ điển. */
 export function per100FromPortion(portion: FoodNutrients, grams: number): FoodNutrients {
   return scaleNutrients(portion, grams, 100);

@@ -31,8 +31,10 @@ src/db/queries/favorite-videos.ts # getFavoriteVideos(userId)
 src/actions/schedule.ts          # updateWeeklySchedule (7 template id → users.weekly_schedule, refresh())
 src/actions/habits.ts            # createHabit (trùng tên → lỗi), deleteHabit, setHabitCompleted (upsert habit_id + date, kiểm tra chủ sở hữu)
 src/actions/nutrition-logs.ts    # addNutritionLog (tên món bắt buộc, gram tuỳ chọn; saveToDictionary → db.batch: INSERT nutrition_logs + UPSERT custom_foods quy về 100 g), deleteNutritionLog
+src/actions/custom-foods.ts      # updateCustomFood (tên + số liệu / 100 g, báo trùng tên, lọc user_id), deleteCustomFood
+src/db/queries/custom-foods.ts   # getCustomFoods(userId) (sắp theo tên), customFoodColumns — tập cột gửi xuống client (dùng chung với dashboard)
 src/lib/vietnameseFoods.ts       # Từ điển tĩnh: 106 thực phẩm Việt / 100 g (Tinh bột · Đạm · Sữa · Rau củ · Trái cây · Gia vị), có tên gọi khác vùng miền
-src/lib/food-search.ts           # Từ điển động: gộp món có sẵn + custom_foods, searchFoods (bỏ dấu, alias, xếp hạng, món của tôi ưu tiên), scaleNutrients, per100FromPortion, foodNameKey
+src/lib/food-search.ts           # Từ điển động: gộp món có sẵn + custom_foods, searchFoods (bỏ dấu, alias, xếp hạng, món của tôi ưu tiên), scaleNutrients, per100FromPortion, foodNameKey, per100Problem (≤ 900 kcal, P + C + F ≤ 100 g)
 src/actions/profile.ts           # updateProfile (tính + lưu bmr/tdee, refresh())
 src/db/queries/dashboard.ts      # getDashboardData(userId, date): user + daily log + nutrition_logs + custom_foods + habits (left join habit_logs của ngày) — 1 batch
 src/db/queries/profile.ts        # getUserProfile(userId): row users
@@ -52,8 +54,9 @@ src/components/nutrition/NutritionTracker.tsx # Client: giữ state bản ghi tr
 src/components/nutrition/MacroRings.tsx       # 4 vòng tròn SVG Calories / Protein / Carbs / Fat (% so với mục tiêu)
 src/components/nutrition/AddFoodModal.tsx     # <dialog> 2 tab: "Tìm món" (combobox tìm tại client trong từ điển gộp, ↑↓/Enter, chọn → gram + nút nhanh 50–200 g → macro tự nhân) và "Tự nhập" (tên + calo bắt buộc, khối lượng / P / C / F, checkbox "Lưu món này vào từ điển của tôi")
 src/components/dashboard/DashboardWidget.tsx # Khung widget; không có children → placeholder rỗng
-src/app/profile/page.tsx         # Tab Hồ sơ: thẻ TDEE / Mục tiêu calo + ProfileCard
-src/components/profile/*         # ProfileCard (thu gọn khi đủ thông tin), ProfileForm (gọi updateProfile)
+src/app/profile/page.tsx         # Tab Hồ sơ: thẻ TDEE / Mục tiêu calo + ProfileCard + "Từ điển món ăn của tôi" (hồ sơ + từ điển đọc song song)
+src/components/profile/*         # ProfileCard (thu gọn khi đủ thông tin), ProfileForm (gọi updateProfile), CustomFoodManager (danh sách món riêng, lọc khi > 6 món, Sửa / Xoá có confirm, optimistic), EditCustomFoodModal (sửa tên + số liệu / 100 g, điền sẵn)
+src/components/ui/bottom-sheet.ts # SHEET_DIALOG_CLASS / SHEET_PANEL_CLASS — class chung cho modal <dialog> dạng bottom sheet
 src/components/ExerciseInfoModal.tsx # Modal hướng dẫn bài tập (<dialog>, bottom sheet trên mobile)
 src/components/ExerciseMedia.tsx # Ảnh tĩnh minh hoạ trong modal: <img> khung 4:3, object-contain, skeleton + fallback
 src/components/yoga/YogaVideoLibrary.tsx # Thư viện video Yoga & Giãn cơ trên /workouts (#yoga-videos): "Video yêu thích của bạn" (dán link, xem trước, xoá) + "Gợi ý cho bạn"; card kiểu YouTube + modal <iframe> YouTube embed
@@ -107,6 +110,7 @@ __tests__/yoga.test.tsx       # yoga-videos (dữ liệu, URL nhúng, parseYoutu
 __tests__/schedule.test.tsx   # Lịch tuần: lib, ScheduleSettingsModal, WorkoutLogger autoStart/openSettings, TodayWorkoutWidget
 __tests__/habits.test.tsx     # lib/habits + HabitTracker (tick, thêm, gợi ý, xoá, reset qua ngày bằng fake timers)
 __tests__/nutrition.test.tsx  # lib/nutrition + NutritionTracker (tìm món → gram → macro tự nhân, bàn phím, món của tôi, tự nhập + lưu từ điển, vòng tròn cập nhật, xoá/hoàn tác)
+__tests__/custom-foods.test.tsx # CustomFoodManager + EditCustomFoodModal (danh sách, xoá confirm / hoàn tác, sửa điền sẵn, validate, trùng tên, không giữ bản nháp, lọc)
 __tests__/food-dictionary.test.ts # vietnameseFoods (đủ nhóm, không trùng, calo ≈ Atwater), searchFoods (bỏ dấu, alias, xếp hạng, gộp món của tôi), quy đổi 100 g
 __tests__/navigation.test.tsx # TabNav (tab active, responsive class), DashboardWidget
 __tests__/media.test.tsx      # ExerciseMedia (ảnh tĩnh, fallback), seed ↔ file trong public/ (PNG 1200×900, không GIF/video)

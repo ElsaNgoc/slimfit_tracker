@@ -65,6 +65,7 @@ import { addNutritionLog, deleteNutritionLog } from "@/actions/nutrition-logs";
 import { createHabit, deleteHabit, setHabitCompleted } from "@/actions/habits";
 import { updateWeeklySchedule } from "@/actions/schedule";
 import { addFavoriteVideo, deleteFavoriteVideo } from "@/actions/favorite-videos";
+import { deleteCustomFood, updateCustomFood } from "@/actions/custom-foods";
 
 const { chain, db } = mocks;
 const USER = "user_test_123";
@@ -727,5 +728,107 @@ describe("deleteFavoriteVideo", () => {
   it("không thuộc user → lỗi", async () => {
     db.delete.mockReturnValue(chain([]));
     expect(await deleteFavoriteVideo(5)).toEqual({ ok: false, error: "Không tìm thấy video." });
+  });
+});
+
+// ---------- custom-foods (từ điển riêng) ----------
+
+describe("updateCustomFood", () => {
+  const input = { id: 4, name: "  Bún chả   Hà Nội ", calories: 200, proteinG: 10, carbsG: 24, fatG: 6 };
+  const saved = { id: 4, name: "Bún chả Hà Nội", calories: 200, proteinG: 10, carbsG: 24, fatG: 6 };
+
+  it("chuẩn hoá tên, cập nhật name_key, lọc theo id + user_id, trả dòng mới", async () => {
+    const clash = chain([]);
+    const upd = chain([saved]);
+    db.select.mockReturnValue(clash);
+    db.update.mockReturnValue(upd);
+
+    const res = await updateCustomFood(input);
+
+    expect(res).toEqual({ ok: true, data: saved });
+    expect(db.update).toHaveBeenCalledWith(customFoods);
+    expect(upd.set).toHaveBeenCalledWith({
+      name: "Bún chả Hà Nội",
+      nameKey: "bún chả hà nội",
+      calories: 200,
+      proteinG: 10,
+      carbsG: 24,
+      fatG: 6,
+    });
+    const { sql, params } = whereSql(upd);
+    expect(sql).toContain('"custom_foods"."user_id" = $');
+    expect(sql).toContain('"custom_foods"."id" = $');
+    expect(params).toEqual(expect.arrayContaining([4, USER]));
+    // Kiểm tra trùng tên chỉ trong từ điển của chính user, loại trừ chính món đang sửa
+    const check = whereSql(clash);
+    expect(check.sql).toContain('"custom_foods"."user_id" = $');
+    expect(check.sql).toContain('"custom_foods"."id" <> $');
+    expect(check.params).toEqual(expect.arrayContaining([USER, "bún chả hà nội", 4]));
+  });
+
+  it("đổi sang tên đã có (khác hoa thường) → báo trùng, không UPDATE", async () => {
+    db.select.mockReturnValue(chain([{ id: 9 }]));
+    const res = await updateCustomFood({ ...input, name: "PHỞ BÒ" });
+    expect(res).toMatchObject({ ok: false, error: "Từ điển đã có một món khác cùng tên." });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it("lỗi unique_violation từ DB (2 request đua nhau) → vẫn báo trùng tên", async () => {
+    db.select.mockReturnValue(chain([]));
+    db.update.mockReturnValue(chain([], Object.assign(new Error("db"), { cause: { code: "23505" } })));
+    const res = await updateCustomFood(input);
+    expect(res).toMatchObject({ ok: false, error: "Từ điển đã có một món khác cùng tên." });
+  });
+
+  it("món không thuộc user (0 dòng) → lỗi", async () => {
+    db.select.mockReturnValue(chain([]));
+    db.update.mockReturnValue(chain([]));
+    expect(await updateCustomFood(input)).toEqual({ ok: false, error: "Không tìm thấy món này trong từ điển." });
+  });
+
+  it.each([
+    ["tên trống", { name: "   " }],
+    ["calo lẻ", { calories: 12.5 }],
+    ["calo > 900 / 100 g", { calories: 901 }],
+    ["macro âm", { fatG: -1 }],
+    ["macro > 100 g", { carbsG: 101 }],
+    ["tổng P + C + F > 100 g", { proteinG: 40, carbsG: 40, fatG: 30 }],
+  ])("%s → từ chối, không đụng DB", async (_, extra) => {
+    const res = await updateCustomFood({ ...input, ...extra });
+    expect(res.ok).toBe(false);
+    expect(db.select).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it("tổng macro vượt 100 g → thông báo cụ thể", async () => {
+    const res = await updateCustomFood({ ...input, proteinG: 40, carbsG: 40, fatG: 30 });
+    expect(res).toEqual({ ok: false, error: "Tổng Protein + Carbs + Fat không thể vượt 100 g / 100 g." });
+  });
+
+  it("chưa đăng nhập → lỗi", async () => {
+    mocks.requireUserId.mockRejectedValue(new mocks.UnauthorizedError());
+    expect(await updateCustomFood(input)).toEqual({ ok: false, error: "Bạn cần đăng nhập." });
+    expect(db.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteCustomFood", () => {
+  it("xoá kèm điều kiện user_id", async () => {
+    const q = chain([{ id: 4 }]);
+    db.delete.mockReturnValue(q);
+    expect(await deleteCustomFood(4)).toEqual({ ok: true, data: { id: 4 } });
+    expect(db.delete).toHaveBeenCalledWith(customFoods);
+    const { sql, params } = whereSql(q);
+    expect(sql).toContain('"custom_foods"."user_id" = $');
+    expect(sql).toContain('"custom_foods"."id" = $');
+    expect(params).toEqual(expect.arrayContaining([4, USER]));
+  });
+
+  it("không thuộc user / id sai → lỗi, id không hợp lệ không chạm DB", async () => {
+    db.delete.mockReturnValue(chain([]));
+    expect(await deleteCustomFood(99)).toEqual({ ok: false, error: "Không tìm thấy món này trong từ điển." });
+    db.delete.mockClear();
+    expect((await deleteCustomFood(-1)).ok).toBe(false);
+    expect(db.delete).not.toHaveBeenCalled();
   });
 });

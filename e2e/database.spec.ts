@@ -364,3 +364,81 @@ test.describe("Tập luyện → favorite_videos (video giãn cơ yêu thích)",
     }
   });
 });
+
+test.describe("Hồ sơ → Từ điển món ăn của tôi (custom_foods: xem / sửa / xoá)", () => {
+  const tag = `Từ điển E2E ${Date.now().toString(36)}`;
+
+  test.afterEach(async ({ page }) => {
+    const userId = await currentUserId(page);
+    await branchSql()`DELETE FROM custom_foods WHERE user_id = ${userId} AND name LIKE ${tag + "%"}`;
+  });
+
+  test("hiển thị món đã lưu → sửa (điền sẵn) → DB cập nhật → xoá có xác nhận → DB mất dòng", async ({ page }) => {
+    await page.goto("/profile");
+    const userId = await currentUserId(page);
+    const nameA = `${tag} Bún chả`;
+    const nameB = `${tag} Cơm tấm`;
+    await branchSql()`
+      INSERT INTO custom_foods (user_id, name, name_key, calories, protein, carbs, fat) VALUES
+        (${userId}, ${nameA}, ${nameA.toLowerCase()}, 200, 10, 24, 6),
+        (${userId}, ${nameB}, ${nameB.toLowerCase()}, 180, 9.5, 22, 6)`;
+    await page.reload();
+
+    const section = page.getByRole("region", { name: "Từ điển món ăn của tôi" });
+    await expect(section).toBeVisible();
+    const rowA = section.getByRole("listitem").filter({ hasText: nameA });
+    await expect(rowA).toContainText("200 kcal · P 10 · C 24 · F 6 g");
+    await expect(section.getByRole("listitem").filter({ hasText: nameB })).toContainText("180 kcal · P 9,5 · C 22 · F 6 g");
+
+    // Sửa: modal điền sẵn → đổi tên + calo + protein
+    await section.getByRole("button", { name: `Sửa ${nameA}` }).click();
+    const dialog = page.getByRole("dialog", { name: "Sửa món" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel(/^Tên món ăn/)).toHaveValue(nameA);
+    await expect(dialog.getByLabel(/^Calories/)).toHaveValue("200");
+    await expect(dialog.getByLabel("Protein (g)")).toHaveValue("10");
+    const renamed = `${tag} Bún chả Hà Nội`;
+    await dialog.getByLabel(/^Tên món ăn/).fill(renamed);
+    await dialog.getByLabel(/^Calories/).fill("210");
+    await dialog.getByLabel("Protein (g)").fill("11,5");
+    await dialog.getByRole("button", { name: "Lưu thay đổi" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(section.getByRole("listitem").filter({ hasText: renamed })).toContainText("210 kcal · P 11,5 · C 24 · F 6 g");
+
+    expect(
+      await branchSql()`SELECT name, name_key, calories, protein, carbs, fat FROM custom_foods WHERE user_id = ${userId} AND name LIKE ${tag + "%"} ORDER BY name`,
+    ).toEqual([
+      { name: renamed, name_key: renamed.toLowerCase(), calories: 210, protein: 11.5, carbs: 24, fat: 6 },
+      { name: nameB, name_key: nameB.toLowerCase(), calories: 180, protein: 9.5, carbs: 22, fat: 6 },
+    ]);
+
+    // Đổi tên trùng món khác (khác hoa thường) → báo lỗi, DB không đổi
+    await section.getByRole("button", { name: `Sửa ${renamed}` }).click();
+    await dialog.getByLabel(/^Tên món ăn/).fill(nameB.toUpperCase());
+    await dialog.getByRole("button", { name: "Lưu thay đổi" }).click();
+    await expect(dialog.getByRole("alert")).toHaveText("Từ điển đã có một món khác cùng tên.");
+    await dialog.getByRole("button", { name: "Đóng" }).click();
+    await expect(dialog).toBeHidden();
+
+    // Xoá: lần đầu bấm Huỷ ở hộp xác nhận → vẫn còn; lần 2 OK → mất cả trên UI lẫn DB
+    page.once("dialog", (d) => d.dismiss());
+    await section.getByRole("button", { name: `Xoá ${nameB}` }).click();
+    await expect(section.getByRole("listitem").filter({ hasText: nameB })).toBeVisible();
+
+    page.once("dialog", (d) => {
+      expect(d.type()).toBe("confirm");
+      expect(d.message()).toContain(nameB);
+      return d.accept();
+    });
+    await section.getByRole("button", { name: `Xoá ${nameB}` }).click();
+    await expect(section.getByRole("listitem").filter({ hasText: nameB })).toHaveCount(0);
+    await expect
+      .poll(async () => (await branchSql()`SELECT count(*)::int AS n FROM custom_foods WHERE user_id = ${userId} AND name LIKE ${tag + "%"}`)[0].n)
+      .toBe(1);
+
+    // Reload: đọc lại từ DB
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Từ điển món ăn của tôi" }).getByText(renamed)).toBeVisible();
+    await expect(page.getByText(nameB)).toHaveCount(0);
+  });
+});
