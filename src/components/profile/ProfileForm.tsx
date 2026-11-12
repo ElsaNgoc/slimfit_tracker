@@ -20,7 +20,7 @@ const toNum = (s: string) => {
 };
 
 const inputCls =
-  "h-14 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-lg text-zinc-100 tabular-nums placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none";
+  "h-14 w-full rounded-xl border border-border bg-background px-4 text-lg text-foreground tabular-nums placeholder:text-faint focus:border-primary focus:outline-none";
 
 /** Form hồ sơ → server action `updateProfile` tính BMR/TDEE (Mifflin-St Jeor) rồi refresh Dashboard. */
 export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSaved?: () => void }) {
@@ -64,7 +64,7 @@ export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSa
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
       <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 text-sm font-medium text-zinc-400">Giới tính</legend>
+        <legend className="mb-1 text-sm font-medium text-muted-foreground">Giới tính</legend>
         <div className="grid grid-cols-2 gap-2">
           {(
             [
@@ -79,8 +79,8 @@ export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSa
               onClick={() => setSex(value)}
               className={`h-14 rounded-xl border-2 text-lg font-semibold ${
                 sex === value
-                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
-                  : "border-zinc-700 text-zinc-300 active:bg-zinc-800"
+                  ? "border-primary bg-primary/10 text-link"
+                  : "border-border text-foreground/85 active:bg-muted"
               }`}
             >
               {label}
@@ -117,7 +117,7 @@ export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSa
       </Field>
 
       {error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -125,7 +125,7 @@ export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSa
       <button
         type="submit"
         disabled={isPending}
-        className="h-14 rounded-xl bg-emerald-500 text-lg font-bold text-zinc-950 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+        className="h-14 rounded-xl bg-primary text-lg font-bold text-primary-foreground active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
       >
         {isPending ? "Đang tính…" : "Lưu & tính TDEE"}
       </button>
@@ -136,7 +136,7 @@ export function ProfileForm({ initial, onSaved }: { initial: ProfileValues; onSa
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-zinc-400">
+      <label htmlFor={id} className="text-sm font-medium text-muted-foreground">
         {label}
       </label>
       {children}

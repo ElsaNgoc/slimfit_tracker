@@ -39,7 +39,7 @@ async function Dashboard() {
   return (
     <div className="flex flex-col gap-4 pb-8">
       <header>
-        <p className="text-sm text-zinc-500 capitalize">{dateLabel}</p>
+        <p className="text-sm text-muted-foreground capitalize">{dateLabel}</p>
         <h1 className="text-2xl font-bold tracking-tight">Tổng quan hôm nay</h1>
       </header>
 
@@ -69,8 +69,6 @@ async function Dashboard() {
         <DashboardWidget id="habits" icon="✅" title="Thói quen hôm nay" emptyText="">
           <HabitTracker key={today} date={today} initialHabits={habits} />
         </DashboardWidget>
-        {/* Widget rỗng — gắn tính năng vào sau (truyền children cho DashboardWidget). */}
-        <DashboardWidget id="weight-chart" icon="📈" title="Biểu đồ cân nặng" emptyText="Chưa có dữ liệu cân nặng." />
       </div>
     </div>
   );
@@ -80,15 +78,15 @@ function Landing() {
   return (
     <div className="flex flex-col items-center gap-6 py-16 text-center">
       <h1 className="text-3xl font-bold tracking-tight">Slimfit Tracker</h1>
-      <p className="max-w-sm text-zinc-400">
+      <p className="max-w-sm text-muted-foreground">
         Theo dõi calo, TDEE, buổi tập gym và thói quen yoga mỗi ngày.
       </p>
       <div className="flex w-full max-w-xs flex-col gap-3">
         <SignUpButton>
-          <button className="h-14 rounded-xl bg-emerald-500 text-lg font-bold text-zinc-950">Bắt đầu miễn phí</button>
+          <button className="h-14 rounded-xl bg-primary text-lg font-bold text-primary-foreground">Bắt đầu miễn phí</button>
         </SignUpButton>
         <SignInButton>
-          <button className="h-14 rounded-xl border border-zinc-700 text-lg font-medium text-zinc-200">Đăng nhập</button>
+          <button className="h-14 rounded-xl border border-border text-lg font-medium text-foreground">Đăng nhập</button>
         </SignInButton>
       </div>
     </div>
@@ -98,12 +96,12 @@ function Landing() {
 function DashboardSkeleton() {
   return (
     <div className="flex animate-pulse flex-col gap-4" aria-hidden>
-      <div className="h-12 w-48 rounded-lg bg-zinc-900" />
+      <div className="h-12 w-48 rounded-lg bg-card" />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="h-44 rounded-2xl bg-zinc-900 md:col-span-2" />
-        <div className="h-72 rounded-2xl bg-zinc-900 md:col-span-2" />
-        <div className="h-36 rounded-2xl bg-zinc-900" />
-        <div className="h-36 rounded-2xl bg-zinc-900" />
+        <div className="h-44 rounded-2xl bg-card md:col-span-2" />
+        <div className="h-72 rounded-2xl bg-card md:col-span-2" />
+        <div className="h-36 rounded-2xl bg-card" />
+        <div className="h-36 rounded-2xl bg-card" />
       </div>
     </div>
   );

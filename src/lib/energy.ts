@@ -44,3 +44,22 @@ export function calculateCalorieGoal(tdee: number): number {
 export function ageFromBirthYear(birthYear: number, today: Date = new Date()): number {
   return today.getFullYear() - birthYear;
 }
+
+/**
+ * BMR + TDEE từ hồ sơ; null khi hồ sơ chưa đủ thông tin (thiếu chiều cao / giới tính / năm sinh / mức vận động).
+ * Dùng khi cân nặng đổi từ nơi khác (biểu đồ cân nặng) để TDEE luôn khớp cân nặng mới nhất.
+ */
+export function energyFromProfile(
+  p: {
+    weightKg: number;
+    heightCm: number | null;
+    sex: Sex | null;
+    birthYear: number | null;
+    activityLevel: ActivityLevel | null;
+  },
+  currentYear: number,
+): { bmr: number; tdee: number } | null {
+  if (!p.heightCm || !p.sex || !p.birthYear || !p.activityLevel) return null;
+  const bmr = calculateBmr({ weightKg: p.weightKg, heightCm: p.heightCm, age: currentYear - p.birthYear, sex: p.sex });
+  return { bmr, tdee: calculateTdee(bmr, p.activityLevel) };
+}

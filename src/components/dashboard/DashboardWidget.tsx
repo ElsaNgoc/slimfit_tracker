@@ -24,14 +24,14 @@ export function DashboardWidget({
     <section
       aria-labelledby={headingId}
       data-widget={id}
-      className={`flex flex-col gap-3 rounded-2xl bg-zinc-900 p-4 ${className}`}
+      className={`flex flex-col gap-3 rounded-2xl bg-card p-4 ${className}`}
     >
-      <h2 id={headingId} className="flex items-center gap-2 text-base font-semibold text-zinc-100">
+      <h2 id={headingId} className="flex items-center gap-2 text-base font-semibold text-foreground">
         <span aria-hidden>{icon}</span>
         {title}
       </h2>
       {children ?? (
-        <div className="flex min-h-24 flex-1 items-center justify-center rounded-xl border border-dashed border-zinc-700 p-4 text-center text-sm text-zinc-500">
+        <div className="flex min-h-24 flex-1 items-center justify-center rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
           {emptyText}
         </div>
       )}

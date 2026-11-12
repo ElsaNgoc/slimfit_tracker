@@ -73,8 +73,8 @@ export function NutritionTracker({
       <DashboardWidget id="daily-nutrition" icon="🎯" title="Dinh dưỡng hôm nay" emptyText="" className="md:col-span-2">
         <MacroRings totals={sumNutrition(entries)} goals={goals} />
         {goals === null && (
-          <p className="text-sm text-zinc-400">
-            <Link href="/profile" className="font-medium text-emerald-400 underline-offset-2 hover:underline">
+          <p className="text-sm text-muted-foreground">
+            <Link href="/profile" className="font-medium text-link underline-offset-2 hover:underline">
               Điền hồ sơ
             </Link>{" "}
             để có mục tiêu calo và macro mỗi ngày.
@@ -84,7 +84,7 @@ export function NutritionTracker({
 
       <DashboardWidget id="meals" icon="🍽️" title="Bữa ăn hôm nay" emptyText="" className="md:col-span-2">
         {error && (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
@@ -144,14 +144,14 @@ function MealCard({
     <section
       aria-labelledby={`meal-${meal.type}`}
       data-meal={meal.type}
-      className="flex flex-col gap-3 rounded-xl bg-zinc-950 p-3"
+      className="flex flex-col gap-3 rounded-xl bg-background p-3"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 id={`meal-${meal.type}`} className="font-semibold text-zinc-100">
+          <h3 id={`meal-${meal.type}`} className="font-semibold text-foreground">
             {meal.label}
           </h3>
-          <p className="text-xs text-zinc-500 tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {target !== null
               ? `Gợi ý ${target.toLocaleString("vi-VN")} kcal · ${Math.round(meal.share * 100)}%`
               : `${Math.round(meal.share * 100)}% mục tiêu ngày`}
@@ -161,7 +161,7 @@ function MealCard({
           type="button"
           onClick={onAdd}
           aria-label={`Thêm món vào bữa ${meal.label}`}
-          className="flex h-11 shrink-0 items-center gap-1 rounded-full bg-emerald-500 px-4 text-sm font-bold text-zinc-950 active:bg-emerald-600"
+          className="flex h-11 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground active:bg-primary/85"
         >
           <span aria-hidden className="text-lg leading-none">
             +
@@ -171,8 +171,8 @@ function MealCard({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-sm text-zinc-300 tabular-nums">
-          <span className="text-xl font-bold text-zinc-100" data-testid={`meal-kcal-${meal.type}`}>
+        <p className="text-sm text-foreground/85 tabular-nums">
+          <span className="text-xl font-bold text-foreground" data-testid={`meal-kcal-${meal.type}`}>
             {Math.round(shown).toLocaleString("vi-VN")}
           </span>
           {target !== null ? ` / ${target.toLocaleString("vi-VN")}` : ""} kcal
@@ -195,24 +195,24 @@ function MealCard({
       </div>
 
       {entries.length > 0 && (
-        <ul className="flex flex-col divide-y divide-zinc-800 text-sm">
+        <ul className="flex flex-col divide-y divide-border text-sm">
           {entries.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-2 py-1.5">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-zinc-100">{displayName(e)}</p>
-                <p className="text-xs text-zinc-500 tabular-nums">
+                <p className="truncate font-medium text-foreground">{displayName(e)}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {e.weightG !== null && `${formatGram(e.weightG)} g · `}P {formatGram(e.proteinG)} · C{" "}
                   {formatGram(e.carbsG)} · F {formatGram(e.fatG)}
                 </p>
               </div>
-              <span className="shrink-0 font-semibold text-zinc-100 tabular-nums">
+              <span className="shrink-0 font-semibold text-foreground tabular-nums">
                 {e.calories.toLocaleString("vi-VN")} kcal
               </span>
               <button
                 type="button"
                 onClick={() => onRemove(e)}
                 aria-label={`Xoá ${displayName(e)} khỏi bữa ${meal.label}`}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-zinc-500 active:bg-zinc-800"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-muted-foreground active:bg-muted"
               >
                 ×
               </button>

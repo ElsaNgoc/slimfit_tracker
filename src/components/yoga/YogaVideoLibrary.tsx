@@ -38,13 +38,13 @@ export function YogaVideoLibrary({
         <h2 id={headingId} className="text-lg font-bold tracking-tight">
           Yoga & Giãn cơ
         </h2>
-        <p className="text-sm text-zinc-500">Chọn một video để tập theo ngay trên web.</p>
+        <p className="text-sm text-muted-foreground">Chọn một video để tập theo ngay trên web.</p>
       </div>
 
       <FavoriteVideos initial={favorites} onPlay={setPlaying} />
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-zinc-300">Gợi ý cho bạn</h3>
+        <h3 className="text-sm font-semibold text-foreground/85">Gợi ý cho bạn</h3>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" aria-label="Video gợi ý">
           {suggestions.map((v) => (
             <li key={v.youtubeId}>
@@ -114,18 +114,18 @@ function FavoriteVideos({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-zinc-900/60 p-3 ring-1 ring-white/5">
-      <h3 id={listId} className="flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
-        <span aria-hidden className="text-rose-400">
+    <div className="flex flex-col gap-2 rounded-2xl bg-card/60 p-3 ring-1 ring-foreground/5">
+      <h3 id={listId} className="flex items-center gap-1.5 text-sm font-semibold text-foreground/85">
+        <span aria-hidden className="text-accent">
           ♥
         </span>
         Video yêu thích của bạn
-        {!loading && items.length > 0 && <span className="font-normal text-zinc-500">({items.length})</span>}
+        {!loading && items.length > 0 && <span className="font-normal text-muted-foreground">({items.length})</span>}
       </h3>
 
       {loading ? (
         <div className="flex animate-pulse flex-col gap-2" aria-hidden>
-          <div className="h-20 rounded-2xl bg-zinc-800/60" />
+          <div className="h-20 rounded-2xl bg-muted/60" />
         </div>
       ) : items.length > 0 ? (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" aria-labelledby={listId}>
@@ -138,7 +138,7 @@ function FavoriteVideos({
                 type="button"
                 onClick={() => remove(v)}
                 aria-label={`Xoá khỏi yêu thích: ${v.title}`}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-zinc-500 active:bg-zinc-800"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-muted-foreground active:bg-muted"
               >
                 ×
               </button>
@@ -146,7 +146,7 @@ function FavoriteVideos({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           Dán link YouTube bài giãn cơ bạn hay tập để lưu lại — lần sau mở là tập ngay, không cần tìm lại.
         </p>
       )}
@@ -168,12 +168,12 @@ function FavoriteVideos({
               setLink(e.target.value);
               setMessage(null);
             }}
-            className="h-11 min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none disabled:opacity-50"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm text-foreground placeholder:text-faint focus:border-primary focus:outline-none disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={loading || isSaving}
-            className="h-11 shrink-0 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-zinc-950 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+            className="h-11 shrink-0 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
           >
             {isSaving ? "Đang kiểm tra…" : "Lưu video"}
           </button>
@@ -181,10 +181,10 @@ function FavoriteVideos({
 
         {/* Xem trước ngay khi nhận ra link — thumbnail suy ra từ ID, chưa cần gọi server */}
         {previewId && !message && (
-          <div className="flex items-center gap-3 rounded-xl bg-zinc-950/60 p-2" data-testid="favorite-preview">
+          <div className="flex items-center gap-3 rounded-xl bg-background/60 p-2" data-testid="favorite-preview">
             {/* eslint-disable-next-line @next/next/no-img-element -- ảnh ngoài nhỏ */}
             <img src={youtubeThumbnail(previewId)} alt="" className="aspect-video w-24 shrink-0 rounded-lg object-cover" />
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               {duplicate ? "Video này đã có trong danh sách yêu thích." : "Đã nhận ra video — bấm Lưu video để thêm."}
             </p>
           </div>
@@ -193,7 +193,7 @@ function FavoriteVideos({
         {message && (
           <p
             role={message.type === "error" ? "alert" : "status"}
-            className={`text-sm ${message.type === "error" ? "text-red-400" : "text-emerald-400"}`}
+            className={`text-sm ${message.type === "error" ? "text-destructive" : "text-link"}`}
           >
             {message.text}
           </p>
@@ -212,9 +212,9 @@ function VideoCard({ video, onPlay }: { video: VideoCardData; onPlay: () => void
       type="button"
       onClick={onPlay}
       aria-label={`Xem video: ${video.title}${duration ? ` (${duration})` : ""}`}
-      className="flex w-full gap-3 rounded-2xl bg-zinc-900 p-2 text-left ring-1 ring-white/5 transition-transform active:scale-[0.98] active:bg-zinc-800 sm:flex-col sm:p-0 sm:pb-3"
+      className="flex w-full gap-3 rounded-2xl bg-card p-2 text-left ring-1 ring-foreground/5 transition-transform active:scale-[0.98] active:bg-muted sm:flex-col sm:p-0 sm:pb-3"
     >
-      <span className="relative aspect-video w-36 shrink-0 overflow-hidden rounded-xl bg-zinc-800 sm:w-full sm:rounded-b-none">
+      <span className="relative aspect-video w-36 shrink-0 overflow-hidden rounded-xl bg-muted sm:w-full sm:rounded-b-none">
         {/* eslint-disable-next-line @next/next/no-img-element -- ảnh ngoài nhỏ, không cần tối ưu qua next/image */}
         <img src={youtubeThumbnail(video.youtubeId)} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
         {duration && (
@@ -230,10 +230,10 @@ function VideoCard({ video, onPlay }: { video: VideoCardData; onPlay: () => void
         </span>
       </span>
       <span className="flex min-w-0 flex-col gap-1 py-0.5 sm:px-3">
-        <span className="line-clamp-2 text-sm leading-snug font-semibold text-zinc-100">{video.title}</span>
-        {video.channel && <span className="truncate text-xs text-zinc-500">{video.channel}</span>}
+        <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">{video.title}</span>
+        {video.channel && <span className="truncate text-xs text-muted-foreground">{video.channel}</span>}
         {video.tag && (
-          <span className="self-start rounded-full bg-sky-400/15 px-2 py-0.5 text-xs font-medium text-sky-300">
+          <span className="self-start rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-foreground">
             {video.tag}
           </span>
         )}
@@ -285,10 +285,10 @@ function YogaVideoModal({ video, onClose }: { video: VideoCardData | null; onClo
         onClose();
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="mx-auto mt-auto mb-0 w-full max-w-full bg-transparent p-0 text-zinc-100 backdrop:bg-black/80 sm:my-auto sm:max-w-3xl"
+      className="mx-auto mt-auto mb-0 w-full max-w-full bg-transparent p-0 text-foreground backdrop:bg-black/80 sm:my-auto sm:max-w-3xl"
     >
       {video && (
-        <div className="flex flex-col overflow-hidden rounded-t-3xl bg-zinc-900 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl ring-1 ring-white/10 sm:rounded-3xl sm:pb-4">
+        <div className="flex flex-col overflow-hidden rounded-t-3xl bg-card pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl ring-1 ring-foreground/10 sm:rounded-3xl sm:pb-4">
           <div className="aspect-video w-full bg-black">
             <iframe
               key={video.youtubeId}
@@ -306,15 +306,15 @@ function YogaVideoModal({ video, onClose }: { video: VideoCardData | null; onClo
               <h2 id={titleId} className="text-base leading-snug font-bold">
                 {video.title}
               </h2>
-              {meta && <p className="text-sm text-zinc-400">{meta}</p>}
-              {video.summary && <p className="mt-1 text-sm text-zinc-500">{video.summary}</p>}
+              {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
+              {video.summary && <p className="mt-1 text-sm text-muted-foreground">{video.summary}</p>}
             </div>
             <button
               ref={closeRef}
               type="button"
               onClick={onClose}
               aria-label="Đóng video"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-300 active:bg-zinc-700"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-2xl text-foreground/85 active:bg-muted/70"
             >
               ×
             </button>
@@ -323,7 +323,7 @@ function YogaVideoModal({ video, onClose }: { video: VideoCardData | null; onClo
             href={youtubeWatchUrl(video.youtubeId)}
             target="_blank"
             rel="noopener noreferrer"
-            className="mx-4 mt-3 flex min-h-11 items-center justify-center rounded-xl border border-zinc-700 text-sm font-medium text-zinc-300 active:bg-zinc-800"
+            className="mx-4 mt-3 flex min-h-11 items-center justify-center rounded-xl border border-border text-sm font-medium text-foreground/85 active:bg-muted"
           >
             Mở trên YouTube ↗
           </a>

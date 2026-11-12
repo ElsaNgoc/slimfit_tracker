@@ -4,8 +4,10 @@ import { formatGram, percentOf, type NutritionTotals, type Macros } from "@/lib/
 import { useAnimatedNumber } from "@/lib/use-animated-number";
 
 /**
- * Màu từng vòng: 4 slot categorical đầu (bản dark) của bảng màu dataviz, đã kiểm tra bằng
- * validate_palette.js trên nền zinc-900 (#18181b): đủ tương phản 3:1, tách biệt khi mù màu.
+ * Màu từng vòng: 4 slot categorical đầu (bản dark) của bảng màu dataviz — CỐ ĐỊNH qua mọi theme để
+ * Calories / Protein… luôn cùng màu. Đã chạy validate_palette.js trên nền `background` của cả 3 theme
+ * (#1d0f0c · #1e3842 · #130b1e): PASS độ sáng, chroma, CVD ΔE 8.4, normal-vision 19.8, tương phản ≥ 3:1.
+ * → Vòng tròn phải nằm trên nền `bg-background` (panel bên trong card), không đặt thẳng lên `bg-card`.
  * Mỗi vòng có tên + số liệu bằng chữ nên màu không phải kênh nhận diện duy nhất.
  */
 const RINGS = [
@@ -20,7 +22,7 @@ export type NutritionGoals = Macros & { calories: number };
 /** 4 biểu đồ vòng tròn: % hoàn thành Calories / Protein / Carbs / Fat so với mục tiêu ngày. */
 export function MacroRings({ totals, goals }: { totals: NutritionTotals; goals: NutritionGoals | null }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-xl bg-background p-3">
       <ul className="grid grid-cols-4 gap-2">
         {RINGS.map((r) => (
           <li key={r.key}>
@@ -34,7 +36,7 @@ export function MacroRings({ totals, goals }: { totals: NutritionTotals; goals: 
           </li>
         ))}
       </ul>
-      <p className="text-center text-xs text-zinc-500 tabular-nums">
+      <p className="text-center text-xs text-muted-foreground tabular-nums">
         Chất xơ: <span data-testid="fiber-total">{formatGram(totals.fiberG)}</span> g
       </p>
     </div>
@@ -100,16 +102,16 @@ function Ring({
             />
           )}
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-zinc-100 tabular-nums">
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground tabular-nums">
           {percent !== null ? `${Math.round(shownPercent)}%` : "–"}
         </span>
       </div>
-      <span className="text-xs font-semibold text-zinc-200">{label}</span>
-      <span className="text-[11px] leading-tight text-zinc-400 tabular-nums">
+      <span className="text-xs font-semibold text-foreground">{label}</span>
+      <span className="text-[11px] leading-tight text-muted-foreground tabular-nums">
         <span data-testid={`ring-value-${label.toLowerCase()}`}>{fmt(shownValue)}</span>
         {goal !== null ? ` / ${fmt(goal)}` : ""} {unit}
       </span>
-      {over && <span className="text-[11px] leading-tight text-zinc-400">▲ Vượt</span>}
+      {over && <span className="text-[11px] leading-tight text-muted-foreground">▲ Vượt</span>}
     </div>
   );
 }

@@ -28,8 +28,8 @@ function parseAmount(raw: string): number {
 }
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none";
-const labelClass = "text-sm font-medium text-zinc-300";
+  "h-12 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground placeholder:text-faint focus:border-primary focus:outline-none";
+const labelClass = "text-sm font-medium text-foreground/85";
 
 /**
  * Modal thêm món cho 1 bữa, 2 chế độ (tab):
@@ -97,7 +97,7 @@ export function AddFoodModal({
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-300 active:bg-zinc-700"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-2xl text-foreground/85 active:bg-muted/70"
           >
             ×
           </button>
@@ -159,7 +159,7 @@ function AddFoodForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label="Cách thêm món" className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-950 p-1">
+      <div role="tablist" aria-label="Cách thêm món" className="grid grid-cols-2 gap-1 rounded-xl bg-background p-1">
         {tabs.map(([value, label]) => (
           <button
             key={value}
@@ -180,7 +180,7 @@ function AddFoodForm({
               tabRefs.current[next]?.focus();
             }}
             className={`h-11 rounded-lg text-sm font-semibold transition-colors ${
-              tab === value ? "bg-zinc-800 text-zinc-100" : "text-zinc-500"
+              tab === value ? "bg-muted text-foreground" : "text-muted-foreground"
             }`}
           >
             {label}
@@ -280,7 +280,7 @@ function SearchPanel({
           Tìm món ăn
         </label>
         <div className="relative">
-          <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-zinc-500">
+          <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
             🔍
           </span>
           <input
@@ -319,19 +319,19 @@ function SearchPanel({
                 setListOpen(false);
               }
             }}
-            className={`${inputClass} pl-10 ${selected ? "text-zinc-400" : ""}`}
+            className={`${inputClass} pl-10 ${selected ? "text-muted-foreground" : ""}`}
           />
         </div>
 
         {showList && (
-          <div className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950">
+          <div className="overflow-hidden rounded-xl border border-border bg-background">
             {results.length === 0 ? (
-              <div className="flex flex-col gap-2 px-3 py-3 text-sm text-zinc-400">
+              <div className="flex flex-col gap-2 px-3 py-3 text-sm text-muted-foreground">
                 <p>Chưa có “{query.trim()}” trong từ điển.</p>
                 <button
                   type="button"
                   onClick={() => onManual(normalizeFoodName(query))}
-                  className="h-11 rounded-lg bg-zinc-800 font-semibold text-zinc-100 active:bg-zinc-700"
+                  className="h-11 rounded-lg bg-muted font-semibold text-foreground active:bg-muted/70"
                 >
                   Tự nhập & lưu vào từ điển
                 </button>
@@ -347,21 +347,21 @@ function SearchPanel({
                     onMouseDown={(e) => e.preventDefault()} // giữ focus ở ô tìm
                     onClick={() => choose(item)}
                     onMouseEnter={() => setActive(i)}
-                    className={`flex min-h-12 cursor-pointer items-center gap-3 border-b border-zinc-800 px-3 py-2 last:border-0 ${
-                      i === active ? "bg-zinc-800" : ""
+                    className={`flex min-h-12 cursor-pointer items-center gap-3 border-b border-border px-3 py-2 last:border-0 ${
+                      i === active ? "bg-muted" : ""
                     }`}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-zinc-100">{item.name}</p>
-                      <p className="text-xs text-zinc-500 tabular-nums">
+                      <p className="truncate font-medium text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">
                         P {formatGram(item.per100.proteinG)} · C {formatGram(item.per100.carbsG)} · F{" "}
                         {formatGram(item.per100.fatG)} g
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-0.5">
-                      <span className="text-sm font-semibold text-zinc-200 tabular-nums">
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
                         {item.per100.calories.toLocaleString("vi-VN")}
-                        <span className="text-xs font-normal text-zinc-500"> kcal/100g</span>
+                        <span className="text-xs font-normal text-muted-foreground"> kcal/100g</span>
                       </span>
                       <SourceTag item={item} />
                     </div>
@@ -372,7 +372,7 @@ function SearchPanel({
           </div>
         )}
         {!selected && !showList && (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Từ điển gồm món Việt thông dụng
             {customFoods.length > 0 ? ` + ${customFoods.length} món của bạn` : ""}. Số liệu tính trên 100 g.
           </p>
@@ -380,18 +380,18 @@ function SearchPanel({
       </div>
 
       {selected && (
-        <div className="flex flex-col gap-3 rounded-xl bg-zinc-950 p-3">
+        <div className="flex flex-col gap-3 rounded-xl bg-background p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-semibold text-zinc-100">{selected.name}</p>
-              <p className="flex items-center gap-2 text-xs text-zinc-500 tabular-nums">
+              <p className="font-semibold text-foreground">{selected.name}</p>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
                 {selected.per100.calories.toLocaleString("vi-VN")} kcal / 100 g <SourceTag item={selected} />
               </p>
             </div>
             <button
               type="button"
               onClick={reset}
-              className="h-11 shrink-0 rounded-lg px-3 text-sm font-medium text-emerald-400 active:bg-zinc-800"
+              className="h-11 shrink-0 rounded-lg px-3 text-sm font-medium text-link active:bg-muted"
             >
               Đổi món
             </button>
@@ -413,9 +413,9 @@ function SearchPanel({
                   setGrams(e.target.value.replace(/[^\d.,]/g, ""));
                   setError(null);
                 }}
-                className="h-14 w-full rounded-xl border border-zinc-700 bg-zinc-900 pr-10 pl-4 text-2xl font-bold tabular-nums focus:border-emerald-500 focus:outline-none"
+                className="h-14 w-full rounded-xl border border-border bg-card pr-10 pl-4 text-2xl font-bold tabular-nums focus:border-primary focus:outline-none"
               />
-              <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-zinc-500">g</span>
+              <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground">g</span>
             </div>
             <div className="grid grid-cols-4 gap-2" role="group" aria-label="Chọn nhanh số gram">
               {QUICK_GRAMS.map((g) => (
@@ -428,7 +428,7 @@ function SearchPanel({
                     setError(null);
                   }}
                   className={`h-11 rounded-lg text-sm font-semibold tabular-nums transition-colors ${
-                    gramValue === g ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40" : "bg-zinc-900 text-zinc-400"
+                    gramValue === g ? "bg-primary/15 text-link ring-1 ring-primary/40" : "bg-card text-muted-foreground"
                   }`}
                 >
                   {g} g
@@ -451,7 +451,7 @@ function SourceTag({ item }: { item: FoodItem }) {
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[11px] leading-4 font-medium ${
-        item.source === "custom" ? "bg-emerald-500/15 text-emerald-300" : "bg-zinc-800 text-zinc-400"
+        item.source === "custom" ? "bg-primary/15 text-link" : "bg-muted text-muted-foreground"
       }`}
     >
       {item.tag}
@@ -469,13 +469,13 @@ function NutrientGrid({ values }: { values: FoodNutrients | null }) {
   return (
     <dl className="grid grid-cols-4 gap-2 text-center" aria-live="polite">
       {cells.map(([label, unit, value, key]) => (
-        <div key={key} className="rounded-lg bg-zinc-900 px-1 py-2">
-          <dt className="text-xs text-zinc-500">{label}</dt>
-          <dd className="text-lg font-bold text-zinc-100 tabular-nums">
+        <div key={key} className="rounded-lg bg-card px-1 py-2">
+          <dt className="text-xs text-muted-foreground">{label}</dt>
+          <dd className="text-lg font-bold text-foreground tabular-nums">
             <span data-testid={`food-${key}`}>
               {value === undefined ? "–" : key === "calories" ? value.toLocaleString("vi-VN") : formatGram(value)}
             </span>
-            <span className="ml-0.5 text-xs font-normal text-zinc-500">{unit}</span>
+            <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
           </dd>
         </div>
       ))}
@@ -543,7 +543,7 @@ function ManualPanel({
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-name`} className={labelClass}>
-          Tên món ăn <span className="text-red-400">*</span>
+          Tên món ăn <span className="text-destructive">*</span>
         </label>
         <input
           id={`${id}-name`}
@@ -561,7 +561,7 @@ function ManualPanel({
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-kcal`} className={labelClass}>
-            Calories <span className="text-red-400">*</span>
+            Calories <span className="text-destructive">*</span>
           </label>
           <div className="relative">
             <input
@@ -574,12 +574,12 @@ function ManualPanel({
               onChange={(e) => set("calories", e.target.value.replace(/\D/g, ""))}
               className={`${inputClass} pr-12 text-lg font-semibold tabular-nums`}
             />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-500">kcal</span>
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">kcal</span>
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-w`} className={labelClass}>
-            Khối lượng {remember && <span className="text-red-400">*</span>}
+            Khối lượng {remember && <span className="text-destructive">*</span>}
           </label>
           <div className="relative">
             <input
@@ -592,7 +592,7 @@ function ManualPanel({
               onChange={(e) => set("weightG", e.target.value.replace(/[^\d.,]/g, ""))}
               className={`${inputClass} pr-8 text-lg font-semibold tabular-nums`}
             />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-500">g</span>
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">g</span>
           </div>
         </div>
       </div>
@@ -617,7 +617,7 @@ function ManualPanel({
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 rounded-xl bg-zinc-950 p-3">
+      <div className="flex flex-col gap-2 rounded-xl bg-background p-3">
         <label htmlFor={`${id}-remember`} className="flex min-h-11 cursor-pointer items-center gap-3">
           <input
             id={`${id}-remember`}
@@ -627,12 +627,12 @@ function ManualPanel({
               setRemember(e.target.checked);
               setError(null);
             }}
-            className="size-5 shrink-0 accent-emerald-500"
+            className="size-5 shrink-0 accent-primary"
           />
-          <span className="text-sm font-medium text-zinc-200">Lưu món này vào từ điển của tôi</span>
+          <span className="text-sm font-medium text-foreground">Lưu món này vào từ điển của tôi</span>
         </label>
         {remember && (
-          <p className="text-xs text-zinc-500 tabular-nums" aria-live="polite">
+          <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
             {preview
               ? `Sẽ lưu: ${preview.calories.toLocaleString("vi-VN")} kcal · P ${formatGram(preview.proteinG)} · C ${formatGram(
                   preview.carbsG,
@@ -651,7 +651,7 @@ function ManualPanel({
 function FormError({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" className="text-sm text-red-400">
+    <p role="alert" className="text-sm text-destructive">
       {error}
     </p>
   );
@@ -662,7 +662,7 @@ function SaveButton({ meal, isPending, disabled = false }: { meal: Meal; isPendi
     <button
       type="submit"
       disabled={isPending || disabled}
-      className="h-14 rounded-xl bg-emerald-500 text-lg font-bold text-zinc-950 transition-colors active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+      className="h-14 rounded-xl bg-primary text-lg font-bold text-primary-foreground transition-colors active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
     >
       {isPending ? "Đang lưu…" : `Lưu vào bữa ${meal.label}`}
     </button>

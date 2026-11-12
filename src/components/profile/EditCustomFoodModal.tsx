@@ -20,8 +20,8 @@ function parseAmount(raw: string): number {
 }
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none";
-const labelClass = "text-sm font-medium text-zinc-300";
+  "h-12 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground placeholder:text-faint focus:border-primary focus:outline-none";
+const labelClass = "text-sm font-medium text-foreground/85";
 
 /**
  * Modal sửa 1 món trong từ điển riêng (tên + Calo / Protein / Carbs / Fat trên 100 g), điền sẵn dữ liệu cũ.
@@ -86,7 +86,7 @@ export function EditCustomFoodModal({
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-300 active:bg-zinc-700"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-2xl text-foreground/85 active:bg-muted/70"
           >
             ×
           </button>
@@ -147,11 +147,11 @@ function EditForm({ food, onSaved }: { food: CustomFoodRow; onSaved: (food: Cust
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">
-      <p className="text-sm text-zinc-400">Mọi chỉ số tính trên 100 g.</p>
+      <p className="text-sm text-muted-foreground">Mọi chỉ số tính trên 100 g.</p>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-name`} className={labelClass}>
-          Tên món ăn <span className="text-red-400">*</span>
+          Tên món ăn <span className="text-destructive">*</span>
         </label>
         <input
           id={`${id}-name`}
@@ -166,7 +166,7 @@ function EditForm({ food, onSaved }: { food: CustomFoodRow; onSaved: (food: Cust
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-kcal`} className={labelClass}>
-          Calories / 100 g <span className="text-red-400">*</span>
+          Calories / 100 g <span className="text-destructive">*</span>
         </label>
         <div className="relative">
           <input
@@ -178,10 +178,10 @@ function EditForm({ food, onSaved }: { food: CustomFoodRow; onSaved: (food: Cust
             onChange={(e) => set("calories", e.target.value.replace(/\D/g, ""))}
             className={`${inputClass} pr-14 text-lg font-semibold tabular-nums`}
           />
-          <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-zinc-500">kcal</span>
+          <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground">kcal</span>
         </div>
         {macrosValid && (
-          <p className="text-xs text-zinc-500 tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             Theo macro ≈ {caloriesFromMacros(macros).toLocaleString("vi-VN")} kcal
           </p>
         )}
@@ -208,7 +208,7 @@ function EditForm({ food, onSaved }: { food: CustomFoodRow; onSaved: (food: Cust
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -216,7 +216,7 @@ function EditForm({ food, onSaved }: { food: CustomFoodRow; onSaved: (food: Cust
       <button
         type="submit"
         disabled={isPending}
-        className="h-14 rounded-xl bg-emerald-500 text-lg font-bold text-zinc-950 transition-colors active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+        className="h-14 rounded-xl bg-primary text-lg font-bold text-primary-foreground transition-colors active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
       >
         {isPending ? "Đang lưu…" : "Lưu thay đổi"}
       </button>

@@ -1,11 +1,78 @@
 @import "tailwindcss";
 
-/* App luôn dùng giao diện tối (tiết kiệm pin trên màn OLED): `dark:` gắn với class `.dark` trên <html>. */
+/* App luôn dùng giao diện tối (cả 3 theme đều tối): `dark:` gắn với class `.dark` trên <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * ===== Design system: 3 theme, chọn bằng data-theme trên <html> (xem src/lib/theme.ts) =====
+ * 5 màu gốc mỗi theme do người dùng chọn: background · card (cũng là border) · primary · accent · foreground.
+ * Các token còn lại SUY RA bằng cách trộn màu gốc và đã tính tương phản WCAG (không ước lượng bằng mắt):
+ *   --muted-foreground  chữ phụ        ≥ 4.5:1 trên background VÀ card
+ *   --faint             placeholder    ≥ 3:1 trên background (ô nhập)
+ *   --link              chữ nhấn/link  ≥ 4.5:1 trên background VÀ card (primary pha sáng dần về foreground)
+ *   --destructive       lỗi            ≥ 4.5:1 trên background VÀ card
+ *   --primary-foreground chữ trên nút primary ≥ 4.5:1
+ *   --muted             nền nút phụ / chip (card pha 12% foreground) — chữ trên nó dùng foreground
+ *   --chart-grid        lưới biểu đồ (background pha 15% foreground, recessive)
+ *   --border            viền = card pha 40% foreground. Đặc tả gốc dùng card làm viền, nhưng phần tử chỉ có viền
+ *                       nằm TRÊN card (nút Nữ / Nam, nút viền) khi đó vô hình (phát hiện qua ảnh chụp) →
+ *                       ≥ 3:1 trên background (viền ô nhập, WCAG 1.4.11), ~2.3–2.9:1 trên card
+ * Màu dữ liệu (vòng macro) giữ cố định qua mọi theme để Calories / Protein… luôn cùng màu; đã chạy
+ * validate_palette.js (skill dataviz) trên background của cả 3 theme: PASS. Biểu đồ luôn đặt trên nền `bg-background`.
+ */
+:root,
+[data-theme="warm"] {
+  /* Warm (Lửa) */
+  --background: #1d0f0c;
+  --card: #6b2c1d;
+  --primary: #e65b39;
+  --accent: #eb9510;
+  --foreground: #fdf5da;
+  --primary-foreground: #1d0f0c; /* 5.26:1 (chữ sáng chỉ 3.25) */
+  --muted: #7d4434;
+  --muted-foreground: #c3a58e; /* bg 8.08 · card 4.54 */
+  --faint: #6e6256; /* bg 3.15 */
+  --link: #ef9676; /* bg 8.26 · card 4.64 (primary gốc trên card chỉ 2.96) */
+  --destructive: #ff8979; /* bg 8.09 · card 4.55 */
+  --chart-grid: #3f322b;
+  --border: #a57c69; /* bg 5.05 · card 2.84 */
+}
+
+[data-theme="cool"] {
+  /* Cool (Biển) */
+  --background: #1e3842;
+  --card: #295c69;
+  --primary: #75d7de;
+  --accent: #afcdf3;
+  --foreground: #d8e9fd;
+  --primary-foreground: #1e3842; /* 7.37:1 */
+  --muted: #3e6d7b;
+  --muted-foreground: #b5cddf; /* bg 7.51 · card 4.51 */
+  --faint: #6c8291; /* bg 3.08 */
+  --link: #7bd8e0; /* bg 7.50 · card 4.50 */
+  --destructive: #ffb9b0; /* bg ≥ 7 · card 4.5 (card sáng vừa nên đỏ đậm không đủ tương phản) */
+  --chart-grid: #3a535e;
+  --border: #6f94a4; /* bg 3.79 · card 2.28 */
+}
+
+[data-theme="vibrant"] {
+  /* Vibrant (Neon) */
+  --background: #130b1e;
+  --card: #3d094e;
+  --primary: #bb29ae;
+  --accent: #eb3934;
+  --foreground: #fdd7d1;
+  --primary-foreground: #ffffff; /* 5.20:1 (chữ #FDD7D1 chỉ 3.91 — không đạt cho chữ nhỏ) */
+  --muted: #54225e;
+  --muted-foreground: #ac809a; /* bg 5.76 · card 4.68 */
+  --faint: #715d66; /* bg 3.16 */
+  --link: #d061b9; /* bg 5.57 · card 4.52 */
+  --destructive: #ff6b5e; /* bg 6.87 · card 5.58 */
+  --chart-grid: #362a39;
+  --border: #8a5b82; /* bg 3.56 · card 2.89 */
+}
+
 :root {
-  --background: #09090b; /* zinc-950 */
-  --foreground: #f4f4f5; /* zinc-100 */
   color-scheme: dark;
   /* Chiều cao thanh tab đáy (BottomNav, chỉ có trên mobile) — dùng để chừa chỗ cho nội dung / thanh cố định. */
   --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
@@ -17,9 +84,21 @@
   }
 }
 
+/* Lớp Tailwind theo vai trò: bg-background, bg-card, text-foreground, bg-primary, text-link, border-border… */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-link: var(--link);
+  --color-destructive: var(--destructive);
+  --color-chart-grid: var(--chart-grid);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -28,4 +107,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Đổi theme mượt: chỉ bật transition màu trong lúc đổi (class gắn tạm bởi applyTheme), không làm chậm tương tác thường ngày. */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition * {
+    transition: none !important;
+  }
 }

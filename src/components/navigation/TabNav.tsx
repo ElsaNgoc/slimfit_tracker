@@ -75,7 +75,7 @@ export function TabNav({ variant }: { variant: "bottom" | "top" }) {
               href={tab.href}
               aria-current={active ? "page" : undefined}
               className={`flex h-11 items-center rounded-full px-4 text-sm font-medium transition-colors ${
-                active ? "bg-emerald-500/15 text-emerald-300" : "text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
+                active ? "bg-primary/15 text-link" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -89,7 +89,7 @@ export function TabNav({ variant }: { variant: "bottom" | "top" }) {
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-800 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <ul className="mx-auto grid h-16 max-w-3xl grid-cols-3">
         {NAV_TABS.map((tab) => {
@@ -100,7 +100,7 @@ export function TabNav({ variant }: { variant: "bottom" | "top" }) {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-full flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${
-                  active ? "text-emerald-400" : "text-zinc-500 active:text-zinc-300"
+                  active ? "text-accent" : "text-muted-foreground active:text-foreground/85"
                 }`}
               >
                 {tab.icon}

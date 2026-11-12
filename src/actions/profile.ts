@@ -1,13 +1,13 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
-import { activityLevelEnum, sexEnum, users, type User } from "@/db/schema";
+import { activityLevelEnum, sexEnum, users, weightLogs, type User } from "@/db/schema";
 import { requireUserId } from "@/lib/auth";
 import { toActionError, type ActionResult } from "@/lib/action-result";
-import { currentYearInAppTz } from "@/lib/date";
+import { currentYearInAppTz, todayInAppTz } from "@/lib/date";
 import { calculateBmr, calculateTdee } from "@/lib/energy";
 
 const updateProfileSchema = z.object({
@@ -25,7 +25,10 @@ const updateProfileSchema = z.object({
 
 export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
 
-/** PUT — cập nhật hồ sơ và tính lại BMR / TDEE (Mifflin-St Jeor), lưu vào bảng users. */
+/**
+ * PUT — cập nhật hồ sơ và tính lại BMR / TDEE (Mifflin-St Jeor), lưu vào bảng users.
+ * Cân nặng cũng được ghi vào weight_logs cho hôm nay (cùng batch) → lần đầu điền hồ sơ là có điểm neo cho biểu đồ.
+ */
 export async function updateProfile(input: UpdateProfileInput): Promise<ActionResult<User>> {
   try {
     const userId = await requireUserId();
@@ -39,20 +42,26 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ActionRe
     });
     const tdee = calculateTdee(bmr, data.activityLevel);
 
-    const [user] = await db
-      .update(users)
-      .set({
-        height: data.heightCm,
-        weight: data.weightKg,
-        targetWeight: data.targetWeightKg ?? null,
-        sex: data.sex,
-        birthYear: data.birthYear,
-        activityLevel: data.activityLevel,
-        bmr,
-        tdee,
-      })
-      .where(eq(users.id, userId))
-      .returning();
+    const [[user]] = await db.batch([
+      db
+        .update(users)
+        .set({
+          height: data.heightCm,
+          weight: data.weightKg,
+          targetWeight: data.targetWeightKg ?? null,
+          sex: data.sex,
+          birthYear: data.birthYear,
+          activityLevel: data.activityLevel,
+          bmr,
+          tdee,
+        })
+        .where(eq(users.id, userId))
+        .returning(),
+      db
+        .insert(weightLogs)
+        .values({ userId, date: todayInAppTz(), weightKg: data.weightKg })
+        .onConflictDoUpdate({ target: [weightLogs.userId, weightLogs.date], set: { weightKg: sql`excluded.weight_kg` } }),
+    ]);
 
     refresh(); // render lại trang Hồ sơ với TDEE mới
     return { ok: true, data: user };

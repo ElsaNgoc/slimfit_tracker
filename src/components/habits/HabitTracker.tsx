@@ -85,8 +85,8 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
     <div className="flex flex-col gap-3">
       {habits.length > 0 ? (
         <>
-          <p className="text-sm text-zinc-400 tabular-nums" aria-live="polite">
-            Đã xong <span className="font-semibold text-zinc-100">{done}</span> / {habits.length}
+          <p className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
+            Đã xong <span className="font-semibold text-foreground">{done}</span> / {habits.length}
           </p>
           <ul className="flex flex-col gap-2">
             {habits.map((h) => (
@@ -94,8 +94,8 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
                 <label
                   className={`flex min-h-12 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 transition-colors select-none ${
                     h.completed
-                      ? "border-emerald-500/60 bg-emerald-500/10"
-                      : "border-zinc-800 bg-zinc-950 active:bg-zinc-800"
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-border bg-background active:bg-muted"
                   }`}
                 >
                   <input
@@ -107,14 +107,14 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
                   />
                   <span
                     aria-hidden
-                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg border-2 text-base font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400 ${
-                      h.completed ? "border-emerald-500 bg-emerald-500 text-zinc-950" : "border-zinc-600 text-transparent"
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg border-2 text-base font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-primary ${
+                      h.completed ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
                     }`}
                   >
                     ✓
                   </span>
                   <span
-                    className={`min-w-0 break-words ${h.completed ? "text-zinc-400 line-through decoration-zinc-500" : "text-zinc-100"}`}
+                    className={`min-w-0 break-words ${h.completed ? "text-muted-foreground line-through decoration-faint" : "text-foreground"}`}
                   >
                     {h.name}
                   </span>
@@ -123,7 +123,7 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
                   type="button"
                   onClick={() => remove(h)}
                   aria-label={`Xoá thói quen ${h.name}`}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-zinc-500 active:bg-zinc-800"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-muted-foreground active:bg-muted"
                 >
                   ×
                 </button>
@@ -132,7 +132,7 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
           </ul>
         </>
       ) : (
-        <p className="rounded-xl border border-dashed border-zinc-700 p-4 text-center text-sm text-zinc-500">
+        <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
           Chưa có thói quen nào. Thêm thói quen đầu tiên hoặc chọn từ gợi ý bên dưới.
         </p>
       )}
@@ -159,19 +159,19 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
             setName(e.target.value);
             setError(null);
           }}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-foreground placeholder:text-faint focus:border-primary focus:outline-none"
         />
         <button
           type="submit"
           disabled={isAdding}
-          className="h-11 shrink-0 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-zinc-950 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="h-11 shrink-0 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
         >
           {isAdding ? "…" : "Thêm thói quen"}
         </button>
       </form>
 
       {error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
@@ -182,7 +182,7 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
           onClick={() => setShowSuggestions((v) => !v)}
           aria-expanded={showSuggestions}
           aria-controls={suggestionsId}
-          className="flex h-11 items-center gap-2 self-start rounded-full px-3 text-sm font-medium text-emerald-400 active:bg-zinc-800"
+          className="flex h-11 items-center gap-2 self-start rounded-full px-3 text-sm font-medium text-link active:bg-muted"
         >
           <span aria-hidden>✨</span> Gợi ý làm đẹp
           <span aria-hidden className={`text-xs transition-transform ${showSuggestions ? "rotate-180" : ""}`}>
@@ -200,9 +200,9 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
                       disabled={isAdding}
                       onClick={() => add(s)}
                       aria-label={`Thêm nhanh ${s}`}
-                      className="flex h-11 items-center gap-1 rounded-full border border-zinc-700 px-4 text-sm text-zinc-200 active:bg-zinc-800 disabled:opacity-50"
+                      className="flex h-11 items-center gap-1 rounded-full border border-border px-4 text-sm text-foreground active:bg-muted disabled:opacity-50"
                     >
-                      <span aria-hidden className="text-emerald-400">
+                      <span aria-hidden className="text-link">
                         +
                       </span>
                       {s}
@@ -211,7 +211,7 @@ export function HabitTracker({ date, initialHabits }: { date: string; initialHab
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-zinc-500">Bạn đã thêm hết các gợi ý 🎉</p>
+              <p className="text-sm text-muted-foreground">Bạn đã thêm hết các gợi ý 🎉</p>
             )}
           </div>
         )}

@@ -42,31 +42,31 @@ export function CustomFoodManager({ initialFoods }: { initialFoods: CustomFoodRo
   }
 
   return (
-    <section aria-labelledby="custom-foods-title" className="flex flex-col gap-3 rounded-2xl bg-zinc-900 p-4">
+    <section aria-labelledby="custom-foods-title" className="flex flex-col gap-3 rounded-2xl bg-card p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="custom-foods-title" className="flex items-center gap-2 text-base font-semibold text-zinc-100">
+        <h2 id="custom-foods-title" className="flex items-center gap-2 text-base font-semibold text-foreground">
           <span aria-hidden>📖</span>
           Từ điển món ăn của tôi
         </h2>
         {foods.length > 0 && (
-          <span className="text-sm text-zinc-500 tabular-nums" data-testid="custom-food-count">
+          <span className="text-sm text-muted-foreground tabular-nums" data-testid="custom-food-count">
             {foods.length} món
           </span>
         )}
       </div>
 
       {foods.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-700 p-4 text-sm text-zinc-400">
+        <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
           Chưa có món nào. Khi thêm món ở{" "}
-          <Link href="/" className="font-medium text-emerald-400 underline-offset-2 hover:underline">
+          <Link href="/" className="font-medium text-link underline-offset-2 hover:underline">
             Tổng quan
           </Link>
-          , chọn “Tự nhập” và tick <span className="text-zinc-200">“Lưu món này vào từ điển của tôi”</span> để lưu món
+          , chọn “Tự nhập” và tick <span className="text-foreground">“Lưu món này vào từ điển của tôi”</span> để lưu món
           vào đây.
         </div>
       ) : (
         <>
-          <p className="text-xs text-zinc-500">Số liệu tính trên 100 g · tìm thấy khi thêm món ở Tổng quan.</p>
+          <p className="text-xs text-muted-foreground">Số liệu tính trên 100 g · tìm thấy khi thêm món ở Tổng quan.</p>
           {foods.length > FILTER_THRESHOLD && (
             <input
               type="search"
@@ -75,26 +75,26 @@ export function CustomFoodManager({ initialFoods }: { initialFoods: CustomFoodRo
               autoComplete="off"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+              className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground placeholder:text-faint focus:border-primary focus:outline-none"
             />
           )}
 
           {error && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
 
           {visible.length === 0 ? (
-            <p className="py-2 text-sm text-zinc-500">Không có món nào khớp “{filter.trim()}”.</p>
+            <p className="py-2 text-sm text-muted-foreground">Không có món nào khớp “{filter.trim()}”.</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-zinc-800 rounded-xl bg-zinc-950" aria-label="Món đã lưu">
+            <ul className="flex flex-col divide-y divide-border rounded-xl bg-background" aria-label="Món đã lưu">
               {visible.map((food) => (
                 <li key={food.id} className="flex items-center gap-1 py-1.5 pr-1 pl-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-zinc-100">{food.name}</p>
-                    <p className="text-xs text-zinc-500 tabular-nums">
-                      <span className="font-semibold text-zinc-300">{food.calories.toLocaleString("vi-VN")} kcal</span>
+                    <p className="truncate font-medium text-foreground">{food.name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      <span className="font-semibold text-foreground/85">{food.calories.toLocaleString("vi-VN")} kcal</span>
                       {" · "}P {formatGram(food.proteinG)} · C {formatGram(food.carbsG)} · F {formatGram(food.fatG)} g
                     </p>
                   </div>
@@ -102,7 +102,7 @@ export function CustomFoodManager({ initialFoods }: { initialFoods: CustomFoodRo
                     type="button"
                     onClick={() => setEditing(food)}
                     aria-label={`Sửa ${food.name}`}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:text-zinc-100 active:bg-zinc-800"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground active:bg-muted"
                   >
                     <PencilIcon />
                   </button>
@@ -110,7 +110,7 @@ export function CustomFoodManager({ initialFoods }: { initialFoods: CustomFoodRo
                     type="button"
                     onClick={() => remove(food)}
                     aria-label={`Xoá ${food.name}`}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:text-red-400 active:bg-zinc-800"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive active:bg-muted"
                   >
                     <TrashIcon />
                   </button>

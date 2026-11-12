@@ -15,7 +15,7 @@ import {
 } from "@/lib/workout-templates";
 
 export const KIND_LABEL: Record<TemplateKind, string> = { gym: "Gym", yoga: "Yoga", rest: "Nghỉ" };
-const KIND_DOT: Record<TemplateKind, string> = { gym: "bg-emerald-500", yoga: "bg-sky-400", rest: "bg-zinc-600" };
+const KIND_DOT: Record<TemplateKind, string> = { gym: "bg-primary", yoga: "bg-accent", rest: "bg-faint" };
 const GROUPS: TemplateKind[] = ["gym", "yoga", "rest"];
 
 /**
@@ -81,21 +81,21 @@ export function ScheduleSettingsModal({
         onClose();
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="group mx-auto mt-auto mb-0 h-auto max-h-[92dvh] w-full max-w-full overflow-visible bg-transparent p-0 text-zinc-100 opacity-0 transition-all transition-discrete duration-300 ease-out backdrop:bg-black/70 backdrop:opacity-0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:opacity-100 open:backdrop:opacity-100 sm:my-auto sm:max-w-lg starting:open:opacity-0 starting:open:backdrop:opacity-0"
+      className="group mx-auto mt-auto mb-0 h-auto max-h-[92dvh] w-full max-w-full overflow-visible bg-transparent p-0 text-foreground opacity-0 transition-all transition-discrete duration-300 ease-out backdrop:bg-black/70 backdrop:opacity-0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:opacity-100 open:backdrop:opacity-100 sm:my-auto sm:max-w-lg starting:open:opacity-0 starting:open:backdrop:opacity-0"
     >
-      <div className="flex max-h-[92dvh] translate-y-full flex-col overflow-hidden rounded-t-3xl bg-zinc-900 shadow-2xl ring-1 ring-white/10 transition-transform duration-300 ease-out group-open:translate-y-0 sm:translate-y-8 sm:rounded-3xl sm:group-open:translate-y-0 starting:group-open:translate-y-full sm:starting:group-open:translate-y-8">
+      <div className="flex max-h-[92dvh] translate-y-full flex-col overflow-hidden rounded-t-3xl bg-card shadow-2xl ring-1 ring-foreground/10 transition-transform duration-300 ease-out group-open:translate-y-0 sm:translate-y-8 sm:rounded-3xl sm:group-open:translate-y-0 starting:group-open:translate-y-full sm:starting:group-open:translate-y-8">
         <div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-4 pb-2">
           <div>
             <h2 id={`${ids}-title`} className="text-xl font-bold">
               Cài đặt lịch tuần
             </h2>
-            <p className="text-sm text-zinc-400">Chọn buổi tập cho từng ngày — gợi ý hôm nay sẽ đi theo lịch này.</p>
+            <p className="text-sm text-muted-foreground">Chọn buổi tập cho từng ngày — gợi ý hôm nay sẽ đi theo lịch này.</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-2xl text-zinc-300 active:bg-zinc-700"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-2xl text-foreground/85 active:bg-muted/70"
           >
             ×
           </button>
@@ -110,22 +110,22 @@ export function ScheduleSettingsModal({
               <li
                 key={day}
                 className={`flex flex-col gap-1.5 rounded-2xl p-3 ${
-                  day === today ? "bg-emerald-500/10 ring-1 ring-emerald-500/40" : "bg-zinc-950/60"
+                  day === today ? "bg-primary/10 ring-1 ring-primary/40" : "bg-background/60"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span aria-hidden className={`size-2.5 shrink-0 rounded-full ${KIND_DOT[t.kind]}`} />
-                  <label htmlFor={selectId} className="text-sm font-semibold text-zinc-200">
+                  <label htmlFor={selectId} className="text-sm font-semibold text-foreground">
                     {weekdayLabel(day)}
                   </label>
-                  {day === today && <span className="text-xs font-semibold text-emerald-400">Hôm nay</span>}
-                  {changed && <span className="ml-auto text-xs text-amber-300">Đã đổi</span>}
+                  {day === today && <span className="text-xs font-semibold text-link">Hôm nay</span>}
+                  {changed && <span className="ml-auto text-xs text-link">Đã đổi</span>}
                 </div>
                 <select
                   id={selectId}
                   value={draft[day]}
                   onChange={(e) => setDay(day, e.target.value)}
-                  className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-base text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                  className="h-12 w-full rounded-xl border border-border bg-card px-3 text-base text-foreground focus:border-primary focus:outline-none"
                 >
                   {GROUPS.map((kind) => (
                     <optgroup key={kind} label={KIND_LABEL[kind]}>
@@ -137,7 +137,7 @@ export function ScheduleSettingsModal({
                     </optgroup>
                   ))}
                 </select>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   {KIND_LABEL[t.kind]} · {t.focus}
                 </p>
               </li>
@@ -145,12 +145,12 @@ export function ScheduleSettingsModal({
           })}
         </ul>
 
-        <div className="flex shrink-0 flex-col gap-2 border-t border-zinc-800 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <p className="text-sm text-zinc-400" aria-live="polite">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-border px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
             {summary.gym} buổi gym · {summary.yoga} yoga · {summary.rest} nghỉ
           </p>
           {error && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
@@ -162,7 +162,7 @@ export function ScheduleSettingsModal({
                 setError(null);
               }}
               disabled={isDefault || isPending}
-              className="h-12 shrink-0 rounded-xl border border-zinc-700 px-3 text-sm font-medium text-zinc-300 active:bg-zinc-800 disabled:opacity-40"
+              className="h-12 shrink-0 rounded-xl border border-border px-3 text-sm font-medium text-foreground/85 active:bg-muted disabled:opacity-40"
             >
               Lịch mặc định
             </button>
@@ -170,7 +170,7 @@ export function ScheduleSettingsModal({
               type="button"
               onClick={save}
               disabled={!dirty || isPending}
-              className="h-12 flex-1 rounded-xl bg-emerald-500 text-base font-bold text-zinc-950 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500"
+              className="h-12 flex-1 rounded-xl bg-primary text-base font-bold text-primary-foreground active:bg-primary/85 disabled:bg-muted disabled:text-muted-foreground"
             >
               {isPending ? "Đang lưu…" : dirty ? "Lưu lịch tuần" : "Chưa có thay đổi"}
             </button>
